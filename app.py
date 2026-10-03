@@ -57,6 +57,9 @@ Make sure the verb tense matches the time meaning of the sentence.
 
 Return ONLY the corrected English sentence.
 Do not explain anything.
+Example:
+Input: He go to school yesterday
+Output: He went to school yesterday.
 Sentence:
 {message}
 """
