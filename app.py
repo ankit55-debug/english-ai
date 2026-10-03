@@ -48,9 +48,15 @@ def correct_english(message):
             contents=f"""
 Correct the English sentence below.
 
+Fix ALL grammar, spelling, punctuation, word choice, and verb tense errors.
+
+Pay special attention to time words such as:
+yesterday, last week, last month, ago, tomorrow, next week, every day, usually, now, currently.
+
+Make sure the verb tense matches the time meaning of the sentence.
+
 Return ONLY the corrected English sentence.
 Do not explain anything.
-
 Sentence:
 {message}
 """
