@@ -40,9 +40,12 @@ def init_db():
 
 
 def correct_english(message):
-    response = client.models.generate_content(
-        model="gemini-3.5-flash",
-        contents=f"""
+
+    # 1. First try Gemini AI
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.5-flash",
+            contents=f"""
 Correct the English sentence below.
 
 Return ONLY the corrected English sentence.
@@ -51,9 +54,62 @@ Do not explain anything.
 Sentence:
 {message}
 """
-    )
+        )
 
-    return response.text.strip()
+        if response.text:
+            return response.text.strip()
+
+    except Exception:
+        pass
+
+    # 2. If Gemini quota is finished, use LanguageTool
+    try:
+        import urllib.parse
+        import urllib.request
+        import json
+
+        data = urllib.parse.urlencode({
+            "text": message,
+            "language": "en-US"
+        }).encode("utf-8")
+
+        request = urllib.request.Request(
+            "https://api.languagetool.org/v2/check",
+            data=data,
+            headers={"User-Agent": "English-AI-Group-Chat"}
+        )
+
+        with urllib.request.urlopen(request, timeout=10) as response:
+            result = json.loads(response.read().decode("utf-8"))
+
+        corrected = message
+
+        # Apply corrections from right to left
+        matches = sorted(
+            result.get("matches", []),
+            key=lambda x: x["offset"],
+            reverse=True
+        )
+
+        for match in matches:
+            replacements = match.get("replacements", [])
+
+            if replacements:
+                replacement = replacements[0]["value"]
+                start = match["offset"]
+                end = start + match["length"]
+
+                corrected = (
+                    corrected[:start]
+                    + replacement
+                    + corrected[end:]
+                )
+
+        return corrected
+
+    except Exception:
+        # Even if both services fail, message will still be sent
+        return message
 @app.route("/")
 def home():
     return render_template("index.html")
