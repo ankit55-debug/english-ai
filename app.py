@@ -1,12 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-from flask_cloudflared import run_with_cloudflared
+
 import sqlite3
 import os
 from google import genai
 app = Flask(__name__)
 CORS(app)
-run_with_cloudflared(app)
+
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 DATABASE = "chat.db"
