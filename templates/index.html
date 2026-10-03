@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English AI Group Chat</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #e5ddd5;
+        }
+
+        .chat-box {
+            max-width: 650px;
+            height: 95vh;
+            margin: 20px auto;
+            background: #efeae2;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #075e54;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 21px;
+        }
+
+        .name-area {
+            background: white;
+            padding: 10px;
+        }
+
+        #username {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .message {
+            background: white;
+            padding: 10px 13px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .ai {
+            background: #fff3cd;
+            padding: 10px 13px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            max-width: 85%;
+            border-left: 4px solid #f0ad4e;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 10px;
+            background: white;
+            border-top: 1px solid #ddd;
+        }
+
+        #message {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+            font-size: 15px;
+        }
+
+        button {
+            margin-left: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background: #128c7e;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #075e54;
+        }
+
+        @media (max-width: 700px) {
+            .chat-box {
+                margin: 0;
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-box">
+
+    <div class="header">
+        <h2>English AI Group Chat</h2>
+    </div>
+
+    <div class="name-area">
+        <input
+            type="text"
+            id="username"
+            placeholder="Enter your name"
+        >
+    </div>
+
+    <div id="messages"></div>
+
+    <div class="input-area">
+        <input
+            type="text"
+            id="message"
+            placeholder="Type your message..."
+            onkeydown="if(event.key === 'Enter') sendMessage()"
+        >
+
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+</div>
+
+<script>
+async function loadMessages() {
+    let response = await fetch("/messages");
+    let data = await response.json();
+
+    let messages = document.getElementById("messages");
+    messages.innerHTML = "";
+
+    data.forEach(function(item) {
+
+        let msg = document.createElement("div");
+        msg.className = "message";
+        msg.textContent = item.username + ": " + item.message;
+
+        messages.appendChild(msg);
+
+        if (item.correction) {
+            let aiMessage = document.createElement("div");
+            aiMessage.className = "ai";
+            aiMessage.textContent = "🤖 AI Correction: " + item.correction;
+
+            messages.appendChild(aiMessage);
+        }
+    });
+
+    messages.scrollTop = messages.scrollHeight;
+}
+
+
+async function sendMessage() {
+
+    let input = document.getElementById("message");
+    let message = input.value.trim();
+
+    if (message === "") {
+        return;
+    }
+
+    let username = document.getElementById("username").value.trim();
+
+    if (username === "") {
+        username = "User";
+    }
+
+    try {
+
+        let response = await fetch("/send", {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                username: username,
+                message: message
+            })
+        });
+
+        let data = await response.json();
+
+        if (!response.ok) {
+            alert(data.error || "Message send nahi hua");
+            return;
+        }
+
+        input.value = "";
+
+        loadMessages();
+
+    } catch (error) {
+
+        alert("Server connection error.");
+
+    }
+}
+
+
+loadMessages();
+
+setInterval(loadMessages, 2000);
+</script>
+
+</body>
+</html>
