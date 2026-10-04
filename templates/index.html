@@ -196,20 +196,24 @@ async function sendMessage() {
 
     try {
 
+        console.log("Sending message:", message);
+
         let response = await fetch("/send", {
             method: "POST",
-
             headers: {
                 "Content-Type": "application/json"
             },
-
             body: JSON.stringify({
                 username: username,
                 message: message
             })
         });
 
+        console.log("Send response status:", response.status);
+
         let data = await response.json();
+
+        console.log("Send response:", data);
 
         if (!response.ok) {
             alert(data.error || "Message send nahi hua");
@@ -218,12 +222,14 @@ async function sendMessage() {
 
         input.value = "";
 
-        loadMessages();
+        // Immediately refresh messages
+        await loadMessages();
 
     } catch (error) {
 
-        alert("Server connection error.");
+        console.error("SEND ERROR:", error);
 
+        alert("Message send error: " + error.message);
     }
 }
 
