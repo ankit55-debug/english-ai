@@ -40,28 +40,71 @@ def init_db():
 
 
 def correct_english(message):
-
-    # 1. First try Gemini AI
+    # 1. Gemini AI — advanced English correction
     try:
         response = client.models.generate_content(
             model="gemini-3.5-flash",
             contents=f"""
-Correct the English sentence below.
+You are an expert English teacher and professional English editor.
 
-Fix ALL grammar, spelling, punctuation, word choice, and verb tense errors.
+Correct the user's English sentence thoroughly.
 
-Pay special attention to time words such as:
-yesterday, last week, last month, ago, tomorrow, next week, every day, usually, now, currently.
+Check ALL of these:
+1. Grammar
+2. Verb tense and aspect
+3. Subject-verb agreement
+4. Articles: a, an, the
+5. Prepositions
+6. Singular/plural forms
+7. Pronouns
+8. Verb forms
+9. Word order
+10. Spelling
+11. Punctuation
+12. Word choice
+13. Sentence structure
+14. Natural and fluent English
+15. Awkward or unnatural expressions
+16. Conditional sentences
+17. Modal verbs
+18. Active/passive voice
+19. Reported speech
+20. Advanced grammar errors
 
-Make sure the verb tense matches the time meaning of the sentence.
+IMPORTANT:
+- Pay special attention to time expressions.
+- Words such as yesterday, last week, ago, since, for, already, yet,
+  tomorrow, next week, every day, usually, now, currently must match
+  the correct tense.
+- Do not change the meaning of the user's sentence.
+- If the sentence is already correct and natural, return it unchanged.
+- Preserve names and intended meaning.
+- Return ONLY the corrected English sentence.
+- Do NOT give explanations.
+- Do NOT add labels such as "Correction:".
+- Do NOT use quotation marks.
 
-Return ONLY the corrected English sentence.
-Do not explain anything.
-Example:
-Input: He go to school yesterday
+Examples:
+
+Input: He go to school yesterday.
 Output: He went to school yesterday.
-Sentence:
+
+Input: I am living here since five years.
+Output: I have been living here for five years.
+
+Input: She don't likes coffee.
+Output: She doesn't like coffee.
+
+Input: If I would know, I will tell you.
+Output: If I knew, I would tell you.
+
+Input: He has went to market yesterday.
+Output: He went to the market yesterday.
+
+Input:
 {message}
+
+Corrected sentence:
 """
         )
 
@@ -71,7 +114,7 @@ Sentence:
     except Exception:
         pass
 
-    # 2. If Gemini quota is finished, use LanguageTool
+    # 2. LanguageTool fallback if Gemini fails/quota is exhausted
     try:
         import urllib.parse
         import urllib.request
@@ -85,15 +128,18 @@ Sentence:
         request = urllib.request.Request(
             "https://api.languagetool.org/v2/check",
             data=data,
-            headers={"User-Agent": "English-AI-Group-Chat"}
+            headers={
+                "User-Agent": "English-AI-Group-Chat"
+            }
         )
 
         with urllib.request.urlopen(request, timeout=10) as response:
-            result = json.loads(response.read().decode("utf-8"))
+            result = json.loads(
+                response.read().decode("utf-8")
+            )
 
         corrected = message
 
-        # Apply corrections from right to left
         matches = sorted(
             result.get("matches", []),
             key=lambda x: x["offset"],
@@ -117,7 +163,6 @@ Sentence:
         return corrected
 
     except Exception:
-        # Even if both services fail, message will still be sent
         return message
 @app.route("/")
 def home():
