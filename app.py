@@ -336,17 +336,14 @@ Corrected sentence:
 # =========================================================
 # BACKGROUND CORRECTION
 # =========================================================
-
 def correct_message_in_background(message_id, message):
-    """
-    Runs separately from the /send request.
-
-    The chat does NOT wait for this function.
-    """
-
-    correction = correct_english(message)
+    print("CORRECTION STARTED:", message)
 
     try:
+        correction = correct_english(message)
+
+        print("CORRECTION RESULT:", correction)
+
         conn = get_db()
 
         conn.execute(
@@ -361,8 +358,10 @@ def correct_message_in_background(message_id, message):
         conn.commit()
         conn.close()
 
-    except Exception:
-        pass
+        print("CORRECTION SAVED:", message_id)
+
+    except Exception as e:
+        print("CORRECTION ERROR:", repr(e))
 
 
 # =========================================================
