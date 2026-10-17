@@ -180,10 +180,16 @@ const GROUP_NAME = {{ group_name|default('General')|tojson }};
         const data = await response.json();
 
         if (response.ok && data.invite_link) {
-            document.getElementById("inviteLink").value =
-                new URL(data.invite_link, window.location.origin).href;
+            const fullInviteLink = new URL(
+    data.invite_link,
+    window.location.origin
+).href;
 
-           alert("Group created successfully! Invite link is ready.");
+document.getElementById("inviteLink").value = fullInviteLink;
+
+if (data.group_id) {
+    alert("Group created! Open the invite link to enter the new group.");
+}
         } else {
             alert(data.error || "Group could not be created.");
         }
