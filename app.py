@@ -418,7 +418,7 @@ def create_group():
     import secrets
 
     data = request.get_json()
-    group_name = data.get("group_name", "").strip()
+    group_name = (data.get("name") or "").strip()
 
     if not group_name:
         return jsonify({"error": "Group name is required"}), 400
