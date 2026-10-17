@@ -513,32 +513,39 @@ def send_message():
 
     data = request.get_json(silent=True) or {}
 
-    username = data.get("username", "User").strip()
-    message = data.get("message", "").strip()
+    username = (data.get("username") or "User").strip()
+    message = (data.get("message") or "").strip()
+    group_id = data.get("group_id")
 
     if not message:
-        return jsonify({
-            "error": "Message cannot be empty"
-        }), 400
+        return jsonify({"error": "Message cannot be empty"}), 400
 
     if not username:
         username = "User"
 
-
-    # -----------------------------------------------------
-    # STEP 1
-    # SAVE MESSAGE IMMEDIATELY
-    # -----------------------------------------------------
+    try:
+        group_id = int(group_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Valid group ID is required"}), 400
 
     conn = get_db()
+
+    group = conn.execute(
+        "SELECT id FROM groups WHERE id = ?",
+        (group_id,)
+    ).fetchone()
+
+    if group is None:
+        conn.close()
+        return jsonify({"error": "Group not found"}), 404
 
     cursor = conn.execute(
         """
         INSERT INTO messages
-        (username, message, correction)
-        VALUES (?, ?, ?)
+        (username, message, correction, group_id)
+        VALUES (?, ?, ?, ?)
         """,
-        (username, message, None)
+        (username, message, None, group_id)
     )
 
     message_id = cursor.lastrowid
@@ -546,33 +553,20 @@ def send_message():
     conn.commit()
     conn.close()
 
-
-    # -----------------------------------------------------
-    # STEP 2
-    # START CORRECTION IN BACKGROUND
-    # -----------------------------------------------------
-
     thread = threading.Thread(
         target=correct_message_in_background,
         args=(message_id, message),
         daemon=True
     )
-
     thread.start()
-
-
-    # -----------------------------------------------------
-    # STEP 3
-    # RETURN IMMEDIATELY
-    # -----------------------------------------------------
 
     return jsonify({
         "status": "success",
         "id": message_id,
         "username": username,
-        "message": message
+        "message": message,
+        "group_id": group_id
     })
-
 
 # =========================================================
 # DIRECT CORRECTION ENDPOINT
