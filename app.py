@@ -37,7 +37,7 @@ def init_db():
         conn.execute("ALTER TABLE messages ADD COLUMN correction TEXT")
     except sqlite3.OperationalError:
         pass
-        # Create groups table
+     # Create groups table
     conn.execute("""
         CREATE TABLE IF NOT EXISTS groups (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
