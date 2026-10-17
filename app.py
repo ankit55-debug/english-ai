@@ -439,7 +439,26 @@ def create_group():
         "group_id": group_id,
         "group_name": group_name,
         "invite_link": request.host_url + "join/" + invite_code
-    })
+    }) 
+    @app.route("/join/<invite_code>")
+def join_group(invite_code):
+    conn = get_db()
+
+    group = conn.execute(
+        "SELECT id, name FROM groups WHERE invite_code = ?",
+        (invite_code,)
+    ).fetchone()
+
+    conn.close()
+
+    if group is None:
+        return "Invalid group invite link", 404
+
+    return render_template(
+        "index.html",
+        group_id=group["id"],
+        group_name=group["name"]
+    )
 # =========================================================
 # GET MESSAGES
 # =========================================================
