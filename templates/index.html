@@ -154,7 +154,12 @@
     </div>
 
 </div>
-async function createGroup() {
+
+<script>
+const GROUP_ID = {{ group_id|default(1)|tojson }};
+const GROUP_NAME = {{ group_name|default('General')|tojson }};
+
+    async function createGroup() {
     const groupName = prompt("Enter group name:");
 
     if (!groupName || !groupName.trim()) {
@@ -202,9 +207,6 @@ function copyInviteLink() {
             alert("Link select ho gaya hai. Ab Copy karo.");
         });
 }
-<script>
-const GROUP_ID = {{ group_id|default(1)|tojson }};
-const GROUP_NAME = {{ group_name|default('General')|tojson }};
 
     document.getElementById("groupTitle").textContent = GROUP_NAME;
 async function loadMessages() {
