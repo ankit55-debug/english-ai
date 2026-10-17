@@ -183,7 +183,7 @@ const GROUP_NAME = {{ group_name|default('General')|tojson }};
             document.getElementById("inviteLink").value =
                 new URL(data.invite_link, window.location.origin).href;
 
-            alert("Group created successfully!");
+           alert("Group created successfully! Invite link is ready.");
         } else {
             alert(data.error || "Group could not be created.");
         }
