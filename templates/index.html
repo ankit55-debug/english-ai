@@ -153,6 +153,8 @@
 <script>
 const GROUP_ID = {{ group_id|default(1)|tojson }};
 const GROUP_NAME = {{ group_name|default('General')|tojson }};
+
+    document.getElementById("groupTitle").textContent = GROUP_NAME;
 async function loadMessages() {
     let response = await fetch(`/messages?group_id=${GROUP_ID}`);
     let data = await response.json();
@@ -206,8 +208,10 @@ async function sendMessage() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                username: username,
-                message: message
+            username: username,
+            message: message,
+            group_id: GROUP_ID
+
             })
         });
 
