@@ -154,7 +154,54 @@
     </div>
 
 </div>
+async function createGroup() {
+    const groupName = prompt("Enter group name:");
 
+    if (!groupName || !groupName.trim()) {
+        return;
+    }
+
+    try {
+        const response = await fetch("/create_group", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: groupName.trim()
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.invite_link) {
+            document.getElementById("inviteLink").value =
+                new URL(data.invite_link, window.location.origin).href;
+
+            alert("Group created successfully!");
+        } else {
+            alert(data.error || "Group could not be created.");
+        }
+    } catch (error) {
+        alert("Server connection failed. Please try again.");
+    }
+}
+
+function copyInviteLink() {
+    const inviteLink = document.getElementById("inviteLink").value;
+
+    if (!inviteLink) {
+        alert("First create a group!");
+        return;
+    }
+
+    navigator.clipboard.writeText(inviteLink)
+        .then(() => alert("Invite link copied!"))
+        .catch(() => {
+            document.getElementById("inviteLink").select();
+            alert("Link select ho gaya hai. Ab Copy karo.");
+        });
+}
 <script>
 const GROUP_ID = {{ group_id|default(1)|tojson }};
 const GROUP_NAME = {{ group_name|default('General')|tojson }};
