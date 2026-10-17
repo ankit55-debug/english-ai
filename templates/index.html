@@ -188,7 +188,7 @@ const GROUP_NAME = {{ group_name|default('General')|tojson }};
 document.getElementById("inviteLink").value = fullInviteLink;
 
 if (data.group_id) {
-    alert("Group created! Open the invite link to enter the new group.");
+    window.location.href = fullInviteLink;
 }
         } else {
             alert(data.error || "Group could not be created.");
