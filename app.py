@@ -417,7 +417,7 @@ def home():
 def create_group():
     import secrets
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     group_name = (data.get("name") or "").strip()
 
     if not group_name:
