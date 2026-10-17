@@ -440,7 +440,9 @@ def create_group():
         "group_name": group_name,
         "invite_link": request.host_url + "join/" + invite_code
     }) 
-    @app.route("/join/<invite_code>")
+
+    
+@app.route("/join/<invite_code>")
 def join_group(invite_code):
     conn = get_db()
 
