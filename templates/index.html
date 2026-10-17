@@ -151,8 +151,10 @@
 </div>
 
 <script>
+const GROUP_ID = {{ group_id|default(1)|tojson }};
+const GROUP_NAME = {{ group_name|default('General')|tojson }};
 async function loadMessages() {
-    let response = await fetch("/messages");
+    let response = await fetch(`/messages?group_id=${GROUP_ID}`);
     let data = await response.json();
 
     let messages = document.getElementById("messages");
