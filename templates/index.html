@@ -156,9 +156,13 @@
 </div>
 
 <script>
-const GROUP_ID = {{ group_id|default(1)|tojson }};
-const GROUP_NAME = {{ group_name|default('General')|tojson }};
+const currentInviteLink = window.location.pathname.startsWith("/join/")
+    ? window.location.href
+    : "";
 
+if (currentInviteLink) {
+    document.getElementById("inviteLink").value = currentInviteLink;
+}
     async function createGroup() {
     const groupName = prompt("Enter group name:");
 
