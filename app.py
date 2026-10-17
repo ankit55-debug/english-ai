@@ -37,7 +37,48 @@ def init_db():
         conn.execute("ALTER TABLE messages ADD COLUMN correction TEXT")
     except sqlite3.OperationalError:
         pass
+        # Create groups table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            invite_code TEXT UNIQUE NOT NULL
+        )
+    """)
 
+    # Create group members table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            UNIQUE(group_id, username)
+        )
+    """)
+
+    # Add group_id to existing messages table
+    columns = [
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(messages)").fetchall()
+    ]
+
+    if "group_id" not in columns:
+        conn.execute(
+            "ALTER TABLE messages ADD COLUMN group_id INTEGER"
+        )
+
+    # Create default group
+    conn.execute("""
+        INSERT OR IGNORE INTO groups (id, name, invite_code)
+        VALUES (1, 'General', 'general-room')
+    """)
+
+    # Move existing messages into General
+    conn.execute("""
+        UPDATE messages
+        SET group_id = 1
+        WHERE group_id IS NULL
+    """)
     conn.commit()
     conn.close()
 
