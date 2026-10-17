@@ -466,14 +466,30 @@ def join_group(invite_code):
 @app.route("/messages", methods=["GET"])
 def get_messages():
 
+    group_id = request.args.get("group_id", type=int)
+
+    if not group_id:
+        return jsonify({"error": "Group ID is required"}), 400
+
     conn = get_db()
+
+    group = conn.execute(
+        "SELECT id FROM groups WHERE id = ?",
+        (group_id,)
+    ).fetchone()
+
+    if group is None:
+        conn.close()
+        return jsonify({"error": "Group not found"}), 404
 
     rows = conn.execute(
         """
         SELECT id, username, message, correction
         FROM messages
+        WHERE group_id = ?
         ORDER BY id ASC
-        """
+        """,
+        (group_id,)
     ).fetchall()
 
     conn.close()
@@ -487,7 +503,6 @@ def get_messages():
         }
         for row in rows
     ])
-
 
 # =========================================================
 # SEND MESSAGE
