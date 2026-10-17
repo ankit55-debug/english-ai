@@ -413,7 +413,33 @@ def correct_message_in_background(message_id, message):
 def home():
     return render_template("index.html")
 
+@app.route("/create_group", methods=["POST"])
+def create_group():
+    import secrets
 
+    data = request.get_json()
+    group_name = data.get("group_name", "").strip()
+
+    if not group_name:
+        return jsonify({"error": "Group name is required"}), 400
+
+    invite_code = secrets.token_urlsafe(16)
+
+    conn = get_db()
+    cursor = conn.execute(
+        "INSERT INTO groups (name, invite_code) VALUES (?, ?)",
+        (group_name, invite_code)
+    )
+    group_id = cursor.lastrowid
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "group_id": group_id,
+        "group_name": group_name,
+        "invite_link": request.host_url + "join/" + invite_code
+    })
 # =========================================================
 # GET MESSAGES
 # =========================================================
