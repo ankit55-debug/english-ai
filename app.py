@@ -12,6 +12,9 @@ app = Flask(__name__)
 CORS(app)
 
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+supabase = create_client(supabase_url, supabase_key)
 
 DATABASE = "chat.db"
 
