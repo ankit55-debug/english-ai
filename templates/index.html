@@ -779,4 +779,143 @@
                         currentName &&
                         item.username.toLowerCase() === currentName.toLowerCase()
                     ) {
-                        row.classList.add("mine");
+                        row.classList.add("mine")
+                        }
+
+                    // Username
+                    const sender = document.createElement("span");
+                    sender.className = "sender";
+                    sender.textContent = item.username || "User";
+
+                    // Message text
+                    const messageBubble = document.createElement("div");
+                    messageBubble.className = "message";
+
+                    const messageText = document.createElement("span");
+                    messageText.className = "message-text";
+                    messageText.textContent = item.message || "";
+
+                    messageBubble.append(sender, messageText);
+                    row.appendChild(messageBubble);
+
+                    // AI English correction
+                    if (item.correction) {
+                        const aiBox = document.createElement("div");
+                        aiBox.className = "ai";
+
+                        const aiTitle = document.createElement("span");
+                        aiTitle.className = "ai-title";
+                        aiTitle.textContent = "✨ AI English Correction";
+
+                        const aiText = document.createElement("div");
+                        aiText.textContent = item.correction;
+
+                        aiBox.append(aiTitle, aiText);
+                        row.appendChild(aiBox);
+                    }
+
+                    messagesElement.appendChild(row);
+                });
+            }
+
+            lastMessageSignature = signature;
+
+            if (wasNearBottom) {
+                messagesElement.scrollTop = messagesElement.scrollHeight;
+            }
+
+        } catch (error) {
+            console.error("LOAD MESSAGES ERROR:", error);
+        } finally {
+            isLoadingMessages = false;
+        }
+    }
+
+
+    // SEND MESSAGE
+    async function sendMessage(event) {
+        event.preventDefault();
+
+        const username = usernameInput.value.trim();
+        const message = messageInput.value.trim();
+
+        if (!username) {
+            alert("Please enter your name first.");
+            usernameInput.focus();
+            return;
+        }
+
+        if (!message) {
+            messageInput.focus();
+            return;
+        }
+
+        // Save the name on this device.
+        try {
+            localStorage.setItem("englishAIUsername", username);
+        } catch (error) {
+            console.log("Could not save username.");
+        }
+
+        sendButton.disabled = true;
+        sendButton.textContent = "Sending...";
+
+        try {
+            const response = await fetch("/send", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    username: username,
+                    message: message,
+                    group_id: GROUP_ID
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Message could not be sent.");
+            }
+
+            // Clear the message only after the server accepts it.
+            messageInput.value = "";
+
+            // Force the next refresh to render updated messages.
+            lastMessageSignature = "";
+
+            await loadMessages();
+
+            messageInput.focus();
+
+        } catch (error) {
+            console.error("SEND MESSAGE ERROR:", error);
+
+            alert(
+                "Message send nahi hua. Please try again.\n" +
+                error.message
+            );
+
+        } finally {
+            sendButton.disabled = false;
+            sendButton.textContent = "Send ➤";
+        }
+    }
+
+
+    // FORM SUBMIT
+    document.getElementById("messageForm").addEventListener(
+        "submit",
+        sendMessage
+    );
+
+
+    // Initial load and automatic refresh
+    loadMessages();
+    setInterval(loadMessages, 2500);
+
+</script>
+
+</body>
+</html>
