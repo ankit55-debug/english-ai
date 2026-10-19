@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 
 import sqlite3
+from supabase import create_client
 import os
 import threading
 
