@@ -1,90 +1,79 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-
-import sqlite3
 from supabase import create_client
+from google import genai
 import os
 import threading
-
-from google import genai
+import secrets
+import urllib.parse
+import urllib.request
+import json
 
 app = Flask(__name__)
 CORS(app)
 
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_KEY")
-supabase = create_client(supabase_url, supabase_key)
+# =========================================================
+# CONFIGURATION
+# =========================================================
 
-DATABASE = "chat.db"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError(
+        "SUPABASE_URL and SUPABASE_KEY must be set in Render Environment."
+    )
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+client = None
+if GEMINI_API_KEY:
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
 
-def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+# =========================================================
+# DATABASE HELPERS
+# =========================================================
+
+def get_group(group_id):
+    result = (
+        supabase.table("groups")
+        .select("id, name, invite_code")
+        .eq("id", group_id)
+        .execute()
+    )
+
+    if result.data:
+        return result.data[0]
+
+    return None
 
 
-def init_db():
-    conn = get_db()
+def ensure_general_group():
+    result = (
+        supabase.table("groups")
+        .select("id, name, invite_code")
+        .eq("invite_code", "general-room")
+        .execute()
+    )
 
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            message TEXT NOT NULL,
-            correction TEXT
-        )
-    """)
+    if result.data:
+        return result.data[0]
 
-    try:
-        conn.execute("ALTER TABLE messages ADD COLUMN correction TEXT")
-    except sqlite3.OperationalError:
-        pass
-     # Create groups table
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS groups (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            invite_code TEXT UNIQUE NOT NULL
-        )
-    """)
+    result = (
+        supabase.table("groups")
+        .insert({
+            "name": "General",
+            "invite_code": "general-room"
+        })
+        .execute()
+    )
 
-    # Create group members table
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS members (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            group_id INTEGER NOT NULL,
-            username TEXT NOT NULL,
-            UNIQUE(group_id, username)
-        )
-    """)
+    if not result.data:
+        raise RuntimeError("Could not create the General group.")
 
-    # Add group_id to existing messages table
-    columns = [
-        row["name"]
-        for row in conn.execute("PRAGMA table_info(messages)").fetchall()
-    ]
-
-    if "group_id" not in columns:
-        conn.execute(
-            "ALTER TABLE messages ADD COLUMN group_id INTEGER"
-        )
-
-    # Create default group
-    conn.execute("""
-        INSERT OR IGNORE INTO groups (id, name, invite_code)
-        VALUES (1, 'General', 'general-room')
-    """)
-
-    # Move existing messages into General
-    conn.execute("""
-        UPDATE messages
-        SET group_id = 1
-        WHERE group_id IS NULL
-    """)
-    conn.commit()
-    conn.close()
+    return result.data[0]
 
 
 # =========================================================
@@ -93,117 +82,57 @@ def init_db():
 
 def correct_english(message):
 
-    # -----------------------------------------------------
-    # 1. Gemini AI - Advanced correction
-    # -----------------------------------------------------
-    try:
-        response = client.models.generate_content(
-            model="gemini-3.5-flash",
-            contents=f"""
-You are an expert English teacher and professional English editor.
+    # 1. Gemini AI correction
+    if client:
+        try:
+            response = client.models.generate_content(
+                model="gemini-3.5-flash",
+                contents=f"""
+You are an expert English teacher.
 
-Correct the user's English sentence thoroughly.
+Correct the user's English sentence for grammar,
+tense, spelling, articles, prepositions, word order,
+punctuation and natural expression.
 
-Check ALL of these:
+Preserve the original meaning.
+If the sentence is already correct, return it unchanged.
+Return ONLY the corrected sentence.
+Do not add explanations, labels or quotation marks.
 
-1. Grammar
-2. Verb tense and aspect
-3. Subject-verb agreement
-4. Articles: a, an, the
-5. Prepositions
-6. Singular/plural forms
-7. Pronouns
-8. Verb forms
-9. Word order
-10. Spelling
-11. Punctuation
-12. Word choice
-13. Sentence structure
-14. Natural and fluent English
-15. Awkward or unnatural expressions
-16. Conditional sentences
-17. Modal verbs
-18. Active/passive voice
-19. Reported speech
-20. Advanced grammar errors
-
-IMPORTANT:
-
-- Pay special attention to time expressions.
-- Words such as yesterday, last week, ago, since, for,
-  already, yet, tomorrow, next week, every day,
-  usually, now, currently must match the correct tense.
-- Do not change the meaning of the user's sentence.
-- Preserve names and intended meaning.
-- If the sentence is already correct and natural,
-  return it unchanged.
-- Return ONLY the corrected English sentence.
-- Do NOT give explanations.
-- Do NOT add labels such as "Correction:".
-- Do NOT use quotation marks.
-
-Examples:
-
-Input: He go to school yesterday.
-Output: He went to school yesterday.
-
-Input: I am living here since five years.
-Output: I have been living here for five years.
-
-Input: She don't likes coffee.
-Output: She doesn't like coffee.
-
-Input: If I would know, I will tell you.
-Output: If I knew, I would tell you.
-
-Input: He has went to market yesterday.
-Output: He went to the market yesterday.
-
-Input:
+User sentence:
 {message}
 
 Corrected sentence:
 """
-        )
+            )
 
-        if response.text:
-            return response.text.strip()
+            if response.text:
+                return response.text.strip()
 
-    except Exception:
-        pass
+        except Exception as e:
+            print("Gemini correction failed:", repr(e))
 
-
-    # -----------------------------------------------------
     # 2. LanguageTool fallback
-    # -----------------------------------------------------
     try:
-        import urllib.parse
-        import urllib.request
-        import json
-
         data = urllib.parse.urlencode({
             "text": message,
             "language": "en-US"
         }).encode("utf-8")
 
-        request = urllib.request.Request(
+        req = urllib.request.Request(
             "https://api.languagetool.org/v2/check",
             data=data,
-            headers={
-                "User-Agent": "English-AI-Group-Chat"
-            }
+            headers={"User-Agent": "English-AI-Group-Chat"}
         )
 
-        with urllib.request.urlopen(request, timeout=10) as response:
-            result = json.loads(
-                response.read().decode("utf-8")
-            )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            result = json.loads(response.read().decode("utf-8"))
 
         corrected = message
 
         matches = sorted(
             result.get("matches", []),
-            key=lambda x: x["offset"],
+            key=lambda item: item["offset"],
             reverse=True
         )
 
@@ -211,169 +140,77 @@ Corrected sentence:
             replacements = match.get("replacements", [])
 
             if replacements:
-                replacement = replacements[0]["value"]
-
                 start = match["offset"]
                 end = start + match["length"]
 
                 corrected = (
                     corrected[:start]
-                    + replacement
+                    + replacements[0]["value"]
                     + corrected[end:]
                 )
 
         if corrected != message:
             return corrected
 
-    except Exception:
-        pass
+    except Exception as e:
+        print("LanguageTool correction failed:", repr(e))
 
+    # 3. Basic local fallback
+    corrected = message.strip()
 
-    # -----------------------------------------------------
-    # 3. Local smart fallback
-    # -----------------------------------------------------
-
-    corrected = message
-
-    lower = message.lower()
-
-    # Common tense correction with "yesterday"
-    if "yesterday" in lower:
-
-        replacements = {
-            " goes ": " went ",
-            " go ": " went ",
-            " comes ": " came ",
-            " come ": " came ",
-            " sees ": " saw ",
-            " see ": " saw ",
-            " eats ": " ate ",
-            " eat ": " ate ",
-            " takes ": " took ",
-            " take ": " took ",
-            " gives ": " gave ",
-            " give ": " gave ",
-            " gets ": " got ",
-            " get ": " got ",
-            " makes ": " made ",
-            " make ": " made ",
-            " does ": " did ",
-            " do ": " did ",
-            " has ": " had ",
-            " have ": " had ",
-            " goes": " went",
-            " go": " went",
-            " comes": " came",
-            " come": " came",
-            " sees": " saw",
-            " see": " saw",
-            " eats": " ate",
-            " eat": " ate",
-            " takes": " took",
-            " take": " took",
-            " gives": " gave",
-            " give": " gave",
-            " gets": " got",
-            " get": " got",
-            " makes": " made",
-            " make": " made",
-            " does": " did",
-            " do": " did",
-            " has": " had",
-            " have": " had"
-        }
-
-        for old, new in replacements.items():
-            corrected = corrected.replace(old, new)
-
-
-    # "last week / last month / last year"
-    time_words = [
-        "last week",
-        "last month",
-        "last year"
-    ]
-
-    if any(word in lower for word in time_words):
-
-        replacements = {
-            " goes ": " went ",
-            " go ": " went ",
-            " comes ": " came ",
-            " come ": " came ",
-            " eats ": " ate ",
-            " eat ": " ate ",
-            " sees ": " saw ",
-            " see ": " saw ",
-            " takes ": " took ",
-            " take ": " took ",
-            " does ": " did ",
-            " do ": " did ",
-            " has ": " had ",
-            " have ": " had "
-        }
-
-        for old, new in replacements.items():
-            corrected = corrected.replace(old, new)
-
-
-    # Basic subject-verb agreement
-    basic_replacements = {
-        "i is ": "I am ",
-        "i are ": "I am ",
-        "he are ": "he is ",
-        "she are ": "she is ",
-        "it are ": "it is ",
-        "they is ": "they are ",
-        "we is ": "we are ",
-        "you is ": "you are ",
-
-        "he don't ": "he doesn't ",
-        "she don't ": "she doesn't ",
-        "it don't ": "it doesn't ",
-
-        "he doesn't likes ": "he doesn't like ",
-        "she doesn't likes ": "she doesn't like ",
-        "it doesn't likes ": "it doesn't like "
-    }
-
-    for old, new in basic_replacements.items():
-        corrected = corrected.replace(old, new)
-
-
-    # Common "am/is/are + verb" corrections
-    continuous_replacements = {
-        "i am go ": "I am going ",
-        "i am eat ": "I am eating ",
-        "i am work ": "I am working ",
-        "i am study ": "I am studying ",
-        "he is go ": "he is going ",
-        "she is go ": "she is going ",
-        "they are go ": "they are going "
-    }
-
-    for old, new in continuous_replacements.items():
-        corrected = corrected.replace(old, new)
-
-
-    # Basic article corrections
-    article_replacements = {
+    replacements = {
+        "i am go to college": "I am going to college",
+        "i am go college": "I am going to college",
+        "i am go": "I am going",
+        "i am eat": "I am eating",
+        "i am study": "I am studying",
+        "he go": "he goes",
+        "she go": "she goes",
+        "he don't": "he doesn't",
+        "she don't": "she doesn't",
+        "i is": "I am",
+        "i are": "I am",
+        "he are": "he is",
+        "she are": "she is",
+        "they is": "they are",
+        "we is": "we are",
+        "you is": "you are",
         "a apple": "an apple",
         "a orange": "an orange",
         "a umbrella": "an umbrella",
         "a hour": "an hour"
     }
 
-    for old, new in article_replacements.items():
+    lower = corrected.lower()
+
+    if "yesterday" in lower or "last week" in lower:
+        past_replacements = {
+            " go ": " went ",
+            " goes ": " went ",
+            " come ": " came ",
+            " comes ": " came ",
+            " eat ": " ate ",
+            " eats ": " ate ",
+            " see ": " saw ",
+            " sees ": " saw ",
+            " do ": " did ",
+            " does ": " did ",
+            " have ": " had ",
+            " has ": " had "
+        }
+
+        padded = " " + corrected + " "
+
+        for old, new in past_replacements.items():
+            padded = padded.replace(old, new)
+
+        corrected = padded.strip()
+
+    for old, new in replacements.items():
         corrected = corrected.replace(old, new)
-
-
-    # Basic punctuation
-    corrected = corrected.strip()
 
     if corrected and corrected[-1] not in ".!?":
         corrected += "."
-
 
     return corrected
 
@@ -381,32 +218,19 @@ Corrected sentence:
 # =========================================================
 # BACKGROUND CORRECTION
 # =========================================================
-def correct_message_in_background(message_id, message):
-    print("CORRECTION STARTED:", message)
 
+def correct_message_in_background(message_id, message):
     try:
         correction = correct_english(message)
 
-        print("CORRECTION RESULT:", correction)
+        supabase.table("messages").update({
+            "correction": correction
+        }).eq("id", message_id).execute()
 
-        conn = get_db()
-
-        conn.execute(
-            """
-            UPDATE messages
-            SET correction = ?
-            WHERE id = ?
-            """,
-            (correction, message_id)
-        )
-
-        conn.commit()
-        conn.close()
-
-        print("CORRECTION SAVED:", message_id)
+        print("Correction saved for message:", message_id)
 
     except Exception as e:
-        print("CORRECTION ERROR:", repr(e))
+        print("Background correction error:", repr(e))
 
 
 # =========================================================
@@ -415,100 +239,125 @@ def correct_message_in_background(message_id, message):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    try:
+        group = ensure_general_group()
+
+        return render_template(
+            "index.html",
+            group_id=group["id"],
+            group_name=group["name"]
+        )
+
+    except Exception as e:
+        print("Home route error:", repr(e))
+        return "Database connection failed. Please try again later.", 500
+
+
+# =========================================================
+# CREATE GROUP
+# =========================================================
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
-    import secrets
-
     data = request.get_json(silent=True) or {}
     group_name = (data.get("name") or "").strip()
 
     if not group_name:
         return jsonify({"error": "Group name is required"}), 400
 
-    invite_code = secrets.token_urlsafe(16)
+    if len(group_name) > 100:
+        return jsonify({"error": "Group name is too long"}), 400
 
-    conn = get_db()
-    cursor = conn.execute(
-        "INSERT INTO groups (name, invite_code) VALUES (?, ?)",
-        (group_name, invite_code)
-    )
-    group_id = cursor.lastrowid
+    try:
+        invite_code = secrets.token_urlsafe(16)
 
-    conn.commit()
-    conn.close()
+        result = (
+            supabase.table("groups")
+            .insert({
+                "name": group_name,
+                "invite_code": invite_code
+            })
+            .execute()
+        )
 
-    return jsonify({
-        "group_id": group_id,
-        "group_name": group_name,
-        "invite_link": request.host_url + "join/" + invite_code
-    }) 
+        if not result.data:
+            return jsonify({"error": "Could not create group"}), 500
 
-    
+        group = result.data[0]
+
+        return jsonify({
+            "group_id": group["id"],
+            "group_name": group["name"],
+            "invite_link": request.host_url.rstrip("/")
+                           + "/join/" + group["invite_code"]
+        })
+
+    except Exception as e:
+        print("Create group error:", repr(e))
+        return jsonify({"error": "Could not create group"}), 500
+
+
+# =========================================================
+# JOIN GROUP
+# =========================================================
+
 @app.route("/join/<invite_code>")
 def join_group(invite_code):
-    conn = get_db()
+    try:
+        result = (
+            supabase.table("groups")
+            .select("id, name")
+            .eq("invite_code", invite_code)
+            .execute()
+        )
 
-    group = conn.execute(
-        "SELECT id, name FROM groups WHERE invite_code = ?",
-        (invite_code,)
-    ).fetchone()
+        if not result.data:
+            return "Invalid group invite link", 404
 
-    conn.close()
+        group = result.data[0]
 
-    if group is None:
-        return "Invalid group invite link", 404
+        return render_template(
+            "index.html",
+            group_id=group["id"],
+            group_name=group["name"]
+        )
 
-    return render_template(
-        "index.html",
-        group_id=group["id"],
-        group_name=group["name"]
-    )
+    except Exception as e:
+        print("Join group error:", repr(e))
+        return "Could not open group. Please try again later.", 500
+
+
 # =========================================================
 # GET MESSAGES
 # =========================================================
 
 @app.route("/messages", methods=["GET"])
 def get_messages():
-
     group_id = request.args.get("group_id", type=int)
 
     if not group_id:
-        return jsonify({"error": "Group ID is required"}), 400
+        return jsonify({"error": "Valid group ID is required"}), 400
 
-    conn = get_db()
+    try:
+        group = get_group(group_id)
 
-    group = conn.execute(
-        "SELECT id FROM groups WHERE id = ?",
-        (group_id,)
-    ).fetchone()
+        if group is None:
+            return jsonify({"error": "Group not found"}), 404
 
-    if group is None:
-        conn.close()
-        return jsonify({"error": "Group not found"}), 404
+        result = (
+            supabase.table("messages")
+            .select("id, username, message, correction")
+            .eq("group_id", group_id)
+            .order("id")
+            .execute()
+        )
 
-    rows = conn.execute(
-        """
-        SELECT id, username, message, correction
-        FROM messages
-        WHERE group_id = ?
-        ORDER BY id ASC
-        """,
-        (group_id,)
-    ).fetchall()
+        return jsonify(result.data or [])
 
-    conn.close()
+    except Exception as e:
+        print("Get messages error:", repr(e))
+        return jsonify({"error": "Could not load messages"}), 500
 
-    return jsonify([
-        {
-            "id": row["id"],
-            "username": row["username"],
-            "message": row["message"],
-            "correction": row["correction"]
-        }
-        for row in rows
-    ])
 
 # =========================================================
 # SEND MESSAGE
@@ -516,63 +365,68 @@ def get_messages():
 
 @app.route("/send", methods=["POST"])
 def send_message():
-
     data = request.get_json(silent=True) or {}
 
     username = (data.get("username") or "User").strip()
     message = (data.get("message") or "").strip()
-    group_id = data.get("group_id")
+
+    try:
+        group_id = int(data.get("group_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Valid group ID is required"}), 400
 
     if not message:
         return jsonify({"error": "Message cannot be empty"}), 400
+
+    if len(message) > 5000:
+        return jsonify({"error": "Message is too long"}), 400
 
     if not username:
         username = "User"
 
     try:
-        group_id = int(group_id)
-    except (TypeError, ValueError):
-        return jsonify({"error": "Valid group ID is required"}), 400
+        group = get_group(group_id)
 
-    conn = get_db()
+        if group is None:
+            return jsonify({"error": "Group not found"}), 404
 
-    group = conn.execute(
-        "SELECT id FROM groups WHERE id = ?",
-        (group_id,)
-    ).fetchone()
+        result = (
+            supabase.table("messages")
+            .insert({
+                "username": username,
+                "message": message,
+                "correction": None,
+                "group_id": group_id
+            })
+            .execute()
+        )
 
-    if group is None:
-        conn.close()
-        return jsonify({"error": "Group not found"}), 404
+        if not result.data:
+            return jsonify({"error": "Message could not be saved"}), 500
 
-    cursor = conn.execute(
-        """
-        INSERT INTO messages
-        (username, message, correction, group_id)
-        VALUES (?, ?, ?, ?)
-        """,
-        (username, message, None, group_id)
-    )
+        saved_message = result.data[0]
+        message_id = saved_message["id"]
 
-    message_id = cursor.lastrowid
+        thread = threading.Thread(
+            target=correct_message_in_background,
+            args=(message_id, message),
+            daemon=True
+        )
+        thread.start()
 
-    conn.commit()
-    conn.close()
+        return jsonify({
+            "status": "success",
+            "id": message_id,
+            "username": username,
+            "message": message,
+            "correction": None,
+            "group_id": group_id
+        })
 
-    thread = threading.Thread(
-        target=correct_message_in_background,
-        args=(message_id, message),
-        daemon=True
-    )
-    thread.start()
+    except Exception as e:
+        print("Send message error:", repr(e))
+        return jsonify({"error": "Could not send message"}), 500
 
-    return jsonify({
-        "status": "success",
-        "id": message_id,
-        "username": username,
-        "message": message,
-        "group_id": group_id
-    })
 
 # =========================================================
 # DIRECT CORRECTION ENDPOINT
@@ -580,37 +434,29 @@ def send_message():
 
 @app.route("/correct", methods=["POST"])
 def correct():
-
     data = request.get_json(silent=True) or {}
-
-    message = data.get("message", "").strip()
+    message = (data.get("message") or "").strip()
 
     if not message:
+        return jsonify({"correction": ""})
+
+    try:
         return jsonify({
-            "correction": ""
+            "correction": correct_english(message)
         })
 
-    correction = correct_english(message)
-
-    return jsonify({
-        "correction": correction
-    })
+    except Exception as e:
+        print("Direct correction error:", repr(e))
+        return jsonify({"error": "Correction failed"}), 500
 
 
 # =========================================================
-# DATABASE INITIALIZATION
+# RUN LOCALLY
 # =========================================================
-
-init_db()
-
 
 if __name__ == "__main__":
-
-    init_db()
-
     app.run(
         host="0.0.0.0",
-        port=5000,
-        debug=False,
-        use_reloader=False
+        port=int(os.environ.get("PORT", 5000)),
+        debug=False
     )
