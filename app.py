@@ -88,16 +88,30 @@ def correct_english(message):
             response = client.models.generate_content(
                 model="gemini-3.5-flash",
                 contents=f"""
-You are an expert English teacher.
+You are an expert English teacher and proofreader.
 
-Correct the user's English sentence for grammar,
-tense, spelling, articles, prepositions, word order,
-punctuation and natural expression.
+Your task is to correct English grammar, spelling,
+tense, punctuation, and sentence structure.
 
-Preserve the original meaning.
-If the sentence is already correct, return it unchanged.
-Return ONLY the corrected sentence.
-Do not add explanations, labels or quotation marks.
+IMPORTANT RULES:
+1. Preserve the user's original meaning and words.
+2. Do not translate Hindi or Hinglish into English.
+3. Do not replace Indian names, religious greetings,
+   or cultural expressions with English words.
+4. Preserve phrases such as "Jai Shree Krishna",
+   "Radhe Radhe", "Jai Shri Ram", and "Namaste"
+   exactly as written, except for harmless capitalization.
+5. Do not change "Shree" or "Shri" to "three".
+6. If a message is a greeting, name, slogan, or
+   already-correct sentence, return it unchanged.
+7. Correct only genuine English grammar mistakes.
+8. Return ONLY the final text without explanations,
+   labels, or quotation marks.
+
+User message:
+{message}
+
+Corrected message:
 
 User sentence:
 {message}
