@@ -81,6 +81,20 @@ def ensure_general_group():
 # =========================================================
 
 def correct_english(message):
+    # Common English corrections
+    simple_corrections = {
+        "i am go to college": "I am going to college.",
+        "i am go college": "I am going to college.",
+        "he go to college": "He goes to college.",
+        "she go to college": "She goes to college.",
+        "i am go": "I am going.",
+        "i went to college yesterday": "I went to college yesterday."
+    }
+
+    key = message.strip().lower()
+
+    if key in simple_corrections:
+        return simple_corrections[key]
 
     # 1. Gemini AI correction
     if client:
