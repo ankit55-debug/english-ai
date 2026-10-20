@@ -373,12 +373,13 @@ def get_messages():
             return jsonify({"error": "Group not found"}), 404
 
         result = (
-            supabase.table("messages")
-            .select("id, username, message, correction")
-            .eq("group_id", group_id)
-            .order("id")
-            .execute()
-        )
+    supabase.table("messages")
+    .select("id, username, message, correction, group_id, is_deleted")
+    .eq("group_id", group_id)
+    .eq("is_deleted", False)
+    .order("id")
+    .execute()
+)
 
         return jsonify(result.data or [])
 
