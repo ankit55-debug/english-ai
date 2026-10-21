@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from supabase import create_client
 from google import genai
@@ -10,6 +10,15 @@ import urllib.request
 import json
 
 app = Flask(__name__)
+
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
+
 CORS(app)
 
 # =========================================================
