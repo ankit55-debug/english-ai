@@ -455,6 +455,41 @@ def send_message():
     except Exception as e:
         print("Send message error:", repr(e))
         return jsonify({"error": "Could not send message"}), 500
+        # =========================================================
+# DELETE MESSAGE FOR EVERYONE (SOFT DELETE)
+# =========================================================
+
+@app.route("/delete_message", methods=["POST"])
+def delete_message():
+    data = request.get_json(silent=True) or {}
+
+    try:
+        message_id = int(data.get("message_id"))
+        group_id = int(data.get("group_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Valid message and group IDs are required"}), 400
+
+    try:
+        result = (
+            supabase.table("messages")
+            .update({"is_deleted": True})
+            .eq("id", message_id)
+            .eq("group_id", group_id)
+            .eq("is_deleted", False)
+            .execute()
+        )
+
+        if not result.data:
+            return jsonify({"error": "Message not found or already deleted"}), 404
+
+        return jsonify({
+            "status": "success",
+            "message": "Message deleted for everyone"
+        })
+
+    except Exception as e:
+        print("Delete message error:", repr(e))
+        return jsonify({"error": "Could not delete message"}), 500
 
 
 # =========================================================
