@@ -797,6 +797,47 @@
 
                     messageBubble.append(sender, messageText);
                     row.appendChild(messageBubble);
+                    // Delete message for everyone
+const deleteButton = document.createElement("button");
+deleteButton.textContent = "🗑️ Delete for Everyone";
+deleteButton.className = "delete-message-btn";
+
+                deleteButton.addEventListener("click", async function () {
+                    const confirmed = confirm(
+                        "Kya aap is message ko sabhi users ke liye hide karna chahte hain?"
+                    );
+
+                    if (!confirmed) return;
+
+                    try {
+                        const response = await fetch("/delete_message", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                message_id: item.id,
+                                group_id: GROUP_ID
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(
+                                result.error || "Message delete nahi hua."
+                            );
+                        }
+
+                        lastMessageSignature = "";
+                        await loadMessages();
+
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                });
+
+                row.appendChild(deleteButton); 
 
                     // AI English correction
                     if (item.correction) {
