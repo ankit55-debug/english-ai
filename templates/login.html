@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English AI - Login</title><style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .container {
+        width: 100%;
+        max-width: 400px;
+        padding: 30px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+        text-align: center;
+        color: #5744b5;
+        margin-top: 0;
+    }
+
+    p {
+        text-align: center;
+        color: #666;
+    }
+
+    input {
+        width: 100%;
+        padding: 13px;
+        margin: 8px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+    }
+
+    button {
+        width: 100%;
+        padding: 13px;
+        margin-top: 12px;
+        border: none;
+        border-radius: 8px;
+        background: #6554c0;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #5141a5;
+    }
+
+    #status {
+        overflow-wrap: anywhere;
+        font-size: 14px;
+    }
+</style>
+
+</head><body>
+    <div class="container">
+        <h1>English AI</h1>
+        <p>Login or create your account</p>    <form id="authForm">
+        <input
+            type="email"
+            id="email"
+            placeholder="Email address"
+            autocomplete="email"
+            required
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Password (minimum 6 characters)"
+            autocomplete="current-password"
+            minlength="6"
+            required
+        >
+
+        <button type="button" id="loginButton">
+            Login
+        </button>
+
+        <button type="button" id="signupButton">
+            Sign Up
+        </button>
+    </form>
+
+    <p id="status" role="status"></p>
+</div>
+
+</body>
+</html>
