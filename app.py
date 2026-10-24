@@ -298,7 +298,7 @@ def auth_session():
         session.clear()
         return jsonify({"error": "Login verification failed"}), 401
         
-        @app.route("/login")
+@app.route("/login")
 def login_page():
     if session.get("user_id"):
         return redirect(url_for("home"))
