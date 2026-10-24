@@ -147,8 +147,23 @@
 
             if (error) throw error;
 
-            statusElement.textContent = "Login successful!";
-            // Server-side session verification and redirect will be added next.
+           const response = await fetch("/auth/session", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        access_token: data.session.access_token
+    })
+});
+
+const result = await response.json();
+
+if (!response.ok) {
+    throw new Error(result.error || "Login verification failed.");
+}
+
+window.location.href = "/";
         } catch (error) {
             statusElement.textContent = error.message;
         }
