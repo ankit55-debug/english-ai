@@ -273,7 +273,30 @@ def correct_message_in_background(message_id, message):
 # =========================================================
 # HOME
 # =========================================================
+@app.route("/auth/session", methods=["POST"])
+def auth_session():
+    data = request.get_json(silent=True) or {}
+    access_token = data.get("access_token", "")
 
+    if not access_token:
+        return jsonify({"error": "Access token is required"}), 401
+
+    try:
+        response = supabase.auth.get_user(access_token)
+        user = response.user
+
+        if not user:
+            return jsonify({"error": "Invalid login token"}), 401
+
+        session["user_id"] = user.id
+        session["user_email"] = user.email
+
+        return jsonify({"status": "success"})
+
+    except Exception as e:
+        print("Auth verification error:", repr(e))
+        session.clear()
+        return jsonify({"error": "Login verification failed"}), 401
 @app.route("/")
 def home():
     try:
