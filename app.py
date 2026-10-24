@@ -299,6 +299,9 @@ def auth_session():
         return jsonify({"error": "Login verification failed"}), 401
 @app.route("/")
 def home():
+    if not session.get("user_id"):
+        return redirect(url_for("login_page"))
+
     try:
         group = ensure_general_group()
 
