@@ -101,6 +101,16 @@
 
     <p id="status" role="status"></p>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
+    const SUPABASE_URL = "https://jbwhvvznpskrxbvviylh.supabase.co/auth/v1/.well-known/jwks.json";
+    const SUPABASE_KEY = "sb_publishable_qt3n6JAshR1zuycMhSOHlA_iDHKwl6h";
+
+    const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+</script>
 </body>
 </html>
