@@ -158,7 +158,16 @@
     })
 });
 
-const result = await response.json();
+const responseText = await response.text();
+
+let result;
+try {
+    result = JSON.parse(responseText);
+} catch {
+    throw new Error(
+        "Server response: " + responseText.slice(0, 200)
+    );
+}
 
 if (!response.ok) {
     throw new Error(result.error || "Login verification failed.");
