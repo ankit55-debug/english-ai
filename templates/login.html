@@ -131,9 +131,10 @@
             statusElement.textContent = data.session
                 ? "Account created! You can now log in."
                 : "Account created! Please check your email to confirm your account.";
-        } catch (error) {
-            statusElement.textContent = error.message;
-        }
+       } catch (error) {
+    console.error("SIGNUP ERROR:", error);
+    statusElement.textContent = "Signup failed: " + error.message;
+}
     });
 
     document.getElementById("loginButton").addEventListener("click", async () => {
