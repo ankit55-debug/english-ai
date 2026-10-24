@@ -304,7 +304,6 @@ def login_page():
         return redirect(url_for("home"))
 
     return render_template("login.html")
-    
 @app.route("/")
 def home():
     if not session.get("user_id"):
