@@ -112,5 +112,47 @@
         SUPABASE_KEY
     );
 </script>
+    <script>
+    const statusElement = document.getElementById("status");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+
+    document.getElementById("signupButton").addEventListener("click", async () => {
+        statusElement.textContent = "Creating account...";
+
+        try {
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: emailInput.value.trim(),
+                password: passwordInput.value
+            });
+
+            if (error) throw error;
+
+            statusElement.textContent = data.session
+                ? "Account created! You can now log in."
+                : "Account created! Please check your email to confirm your account.";
+        } catch (error) {
+            statusElement.textContent = error.message;
+        }
+    });
+
+    document.getElementById("loginButton").addEventListener("click", async () => {
+        statusElement.textContent = "Logging in...";
+
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: emailInput.value.trim(),
+                password: passwordInput.value
+            });
+
+            if (error) throw error;
+
+            statusElement.textContent = "Login successful!";
+            // Server-side session verification and redirect will be added next.
+        } catch (error) {
+            statusElement.textContent = error.message;
+        }
+    });
+</script>
 </body>
 </html>
