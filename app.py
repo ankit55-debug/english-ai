@@ -427,7 +427,7 @@ def get_messages():
     supabase.table("messages")
     .select("id, username, message, correction, group_id, is_deleted")
     .eq("group_id", group_id)
-    .eq("is_deleted", False)
+    
     .order("id")
     .execute()
 )
