@@ -794,19 +794,41 @@
                     sender.className = "sender";
                     sender.textContent = item.username || "User";
 
-                    // Message text
+                    // Message bubble
                     const messageBubble = document.createElement("div");
                     messageBubble.className = "message";
 
                     const messageText = document.createElement("span");
                     messageText.className = "message-text";
-                    messageText.textContent = item.message || "";
+
+                    if (item.is_deleted === true) {
+                        messageText.textContent = "This message was deleted";
+                        messageText.style.fontStyle = "italic";
+                        messageText.style.opacity = "0.75";
+                    } else {
+                        messageText.textContent = item.message || "";
+                    }
 
                     messageBubble.append(sender, messageText);
                     row.appendChild(messageBubble);
-                   
+
                     // AI English correction
-                    if (item.correction) {
+                    if (item.is_deleted !== true && item.correction) {
+                        const aiBox = document.createElement("div");
+                        aiBox.className = "ai";
+
+                        const aiTitle = document.createElement("span");
+                        aiTitle.className = "ai-title";
+                        aiTitle.textContent = "✨ AI English Correction";
+
+                        const aiText = document.createElement("div");
+                        aiText.textContent = item.correction;
+
+                        aiBox.append(aiTitle, aiText);
+                        row.appendChild(aiBox);
+                    }
+
+                    messagesElement.appendChild(row);
                         const aiBox = document.createElement("div");
                         aiBox.className = "ai";
 
