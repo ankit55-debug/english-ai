@@ -136,9 +136,9 @@
         statusElement.textContent =
             "If this email has an account, check your inbox for the password reset link.";
     } catch (error) {
-        console.error("Password reset error:", error);
-        statusElement.textContent =
-            "Could not send reset email. Please try again.";
+       console.error("Password reset error:", error);
+       statusElement.textContent =
+    "Error: " + (error.message || "Unknown error");
     }
 });
 </script>
