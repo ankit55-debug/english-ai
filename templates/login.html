@@ -114,6 +114,33 @@
         SUPABASE_URL,
         SUPABASE_KEY
     );
+    document.getElementById("forgotPasswordButton").addEventListener("click", async function () {
+    const email = document.getElementById("email").value.trim();
+    const statusElement = document.getElementById("status");
+
+    if (!email) {
+        statusElement.textContent = "Please enter your email address first.";
+        document.getElementById("email").focus();
+        return;
+    }
+
+    statusElement.textContent = "Sending password reset email...";
+
+    try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + "/reset-password"
+        });
+
+        if (error) throw error;
+
+        statusElement.textContent =
+            "If this email has an account, check your inbox for the password reset link.";
+    } catch (error) {
+        console.error("Password reset error:", error);
+        statusElement.textContent =
+            "Could not send reset email. Please try again.";
+    }
+});
 </script>
     <script>
     const statusElement = document.getElementById("status");
