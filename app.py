@@ -308,6 +308,11 @@ def login_page():
         return redirect(url_for("home"))
 
     return render_template("login.html")
+
+@app.route("/reset-password")
+def reset_password_page():
+    return render_template("reset_password.html")
+    
 @app.route("/")
 def home():
     if not session.get("user_id"):
