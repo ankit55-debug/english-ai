@@ -412,6 +412,8 @@ def join_group(invite_code):
 
 @app.route("/messages", methods=["GET"])
 def get_messages():
+    @app.route("/messages", methods=["GET"])
+def get_messages():
     group_id = request.args.get("group_id", type=int)
 
     if not group_id:
@@ -424,20 +426,42 @@ def get_messages():
             return jsonify({"error": "Group not found"}), 404
 
         result = (
-    supabase.table("messages")
-    .select("id, username, message, correction, group_id, is_deleted")
-    .eq("group_id", group_id)
-    
-    .order("id")
-    .execute()
-)
+            supabase.table("messages")
+            .select("id, username, message, correction, group_id, is_deleted, hidden_by")
+            .eq("group_id", group_id)
+            .order("id")
+            .execute()
+        )
 
-        return jsonify(result.data or [])
+        current_user = session.get("user_id")
+        messages = []
+
+        for item in (result.data or []):
+            hidden_by = item.get("hidden_by") or []
+
+            # Support a JSON string if the column returns one.
+            if isinstance(hidden_by, str):
+                try:
+                    hidden_by = json.loads(hidden_by)
+                except (ValueError, TypeError):
+                    hidden_by = []
+
+            if not isinstance(hidden_by, list):
+                hidden_by = []
+
+            if current_user and str(current_user) in [
+                str(user_id) for user_id in hidden_by
+            ]:
+                continue
+
+            item.pop("hidden_by", None)
+            messages.append(item)
+
+        return jsonify(messages)
 
     except Exception as e:
         print("Get messages error:", repr(e))
         return jsonify({"error": "Could not load messages"}), 500
-
 
 # =========================================================
 # SEND MESSAGE
