@@ -829,21 +829,7 @@
                     }
 
                     messagesElement.appendChild(row);
-                        const aiBox = document.createElement("div");
-                        aiBox.className = "ai";
-
-                        const aiTitle = document.createElement("span");
-                        aiTitle.className = "ai-title";
-                        aiTitle.textContent = "✨ AI English Correction";
-
-                        const aiText = document.createElement("div");
-                        aiText.textContent = item.correction;
-
-                        aiBox.append(aiTitle, aiText);
-                        row.appendChild(aiBox);
-                    }
-
-                    messagesElement.appendChild(row);
+                       
                 });
             }
 
