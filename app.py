@@ -412,8 +412,7 @@ def join_group(invite_code):
 
 @app.route("/messages", methods=["GET"])
 def get_messages():
-    @app.route("/messages", methods=["GET"])
-def get_messages():
+
     group_id = request.args.get("group_id", type=int)
 
     if not group_id:
