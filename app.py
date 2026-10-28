@@ -3,7 +3,6 @@ from flask_cors import CORS
 from supabase import create_client
 from google import genai
 import os
-import threading
 import secrets
 import urllib.parse
 import urllib.request
@@ -90,7 +89,6 @@ def ensure_general_group():
 # =========================================================
 
 def correct_english(message):
-    # Common English corrections
     simple_corrections = {
         "i am go to college": "I am going to college.",
         "i am go college": "I am going to college.",
@@ -113,30 +111,21 @@ def correct_english(message):
                 contents=f"""
 You are an expert English teacher and proofreader.
 
-Your task is to correct English grammar, spelling,
-tense, punctuation, and sentence structure.
+Correct English grammar, spelling, tense, punctuation,
+and sentence structure.
 
-IMPORTANT RULES:
-1. Preserve the user's original meaning and words.
+Rules:
+1. Preserve the original meaning.
 2. Do not translate Hindi or Hinglish into English.
-3. Do not replace Indian names, religious greetings,
-   or cultural expressions with English words.
-4. Preserve phrases such as "Jai Shree Krishna",
-   "Radhe Radhe", "Jai Shri Ram", and "Namaste"
-   exactly as written, except for harmless capitalization.
+3. Preserve Indian names and cultural expressions.
+4. Preserve "Jai Shree Krishna", "Radhe Radhe",
+   "Jai Shri Ram", and "Namaste".
 5. Do not change "Shree" or "Shri" to "three".
-6. If a message is a greeting, name, slogan, or
-   already-correct sentence, return it unchanged.
-7. Correct only genuine English grammar mistakes.
-8. Return ONLY the final text without explanations,
-   labels, or quotation marks.
+6. Return greetings and correct sentences unchanged.
+7. Correct only genuine English mistakes.
+8. Return only the corrected text without explanations.
 
 User message:
-{message}
-
-Corrected message:
-
-User sentence:
 {message}
 
 Corrected sentence:
@@ -271,8 +260,9 @@ def correct_message_in_background(message_id, message):
 
 
 # =========================================================
-# HOME
+# AUTHENTICATION
 # =========================================================
+
 @app.route("/auth/session", methods=["POST"])
 def auth_session():
     data = request.get_json(silent=True) or {}
@@ -290,10 +280,15 @@ def auth_session():
 
         session["user_id"] = user.id
         session["user_email"] = user.email
-        session["username"] = (user.user_metadata or {}).get("username", "").strip()
+        session["username"] = (
+            (user.user_metadata or {}).get("username", "").strip()
+        )
+
         if not session["username"]:
             session.clear()
-            return jsonify({"error": "Username not found. Please contact support."}), 400
+            return jsonify({
+                "error": "Username not found. Please contact support."
+            }), 400
 
         return jsonify({"status": "success"})
 
@@ -301,11 +296,14 @@ def auth_session():
         print("Auth verification error:", repr(e))
         session.clear()
         return jsonify({"error": "Login verification failed"}), 401
+
+
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
     return redirect(url_for("login_page"))
-    
+
+
 @app.route("/login")
 def login_page():
     if session.get("user_id"):
@@ -313,10 +311,16 @@ def login_page():
 
     return render_template("login.html")
 
+
 @app.route("/reset-password")
 def reset_password_page():
     return render_template("reset_password.html")
-    
+
+
+# =========================================================
+# HOME
+# =========================================================
+
 @app.route("/")
 def home():
     if not session.get("user_id"):
@@ -325,7 +329,7 @@ def home():
     try:
         group = ensure_general_group()
 
-           membership = (
+        membership = (
             supabase.table("members")
             .select("username")
             .eq("group_id", group["id"])
@@ -338,7 +342,7 @@ def home():
             if membership.data else ""
         )
 
-            return render_template(
+        return render_template(
             "index.html",
             group_id=group["id"],
             group_name=group["name"],
@@ -357,7 +361,8 @@ def home():
 @app.route("/create_group", methods=["POST"])
 def create_group():
     if not session.get("user_id"):
-    return jsonify({"error": "Please login first"}), 401
+        return jsonify({"error": "Please login first"}), 401
+
     data = request.get_json(silent=True) or {}
     group_name = (data.get("name") or "").strip()
 
@@ -403,7 +408,8 @@ def create_group():
 @app.route("/join/<invite_code>")
 def join_group(invite_code):
     if not session.get("user_id"):
-    return redirect(url_for("login_page"))
+        return redirect(url_for("login_page"))
+
     try:
         result = (
             supabase.table("groups")
@@ -417,7 +423,7 @@ def join_group(invite_code):
 
         group = result.data[0]
 
-       membership = (
+        membership = (
             supabase.table("members")
             .select("username")
             .eq("group_id", group["id"])
@@ -449,7 +455,7 @@ def join_group(invite_code):
 @app.route("/messages", methods=["GET"])
 def get_messages():
     if not session.get("user_id"):
-    return jsonify({"error": "Please login first"}), 401
+        return jsonify({"error": "Please login first"}), 401
 
     group_id = request.args.get("group_id", type=int)
 
@@ -464,7 +470,9 @@ def get_messages():
 
         result = (
             supabase.table("messages")
-            .select("id, username, message, correction, group_id, is_deleted, hidden_by")
+            .select(
+                "id, username, message, correction, group_id, is_deleted, hidden_by"
+            )
             .eq("group_id", group_id)
             .order("id")
             .execute()
@@ -476,7 +484,6 @@ def get_messages():
         for item in (result.data or []):
             hidden_by = item.get("hidden_by") or []
 
-            # Support a JSON string if the column returns one.
             if isinstance(hidden_by, str):
                 try:
                     hidden_by = json.loads(hidden_by)
@@ -500,9 +507,11 @@ def get_messages():
         print("Get messages error:", repr(e))
         return jsonify({"error": "Could not load messages"}), 500
 
+
 # =========================================================
-# SET A LOCKED USERNAME FOR EACH GROUP
+# SET GROUP USERNAME
 # =========================================================
+
 @app.route("/set_group_username", methods=["POST"])
 def set_group_username():
     data = request.get_json(silent=True) or {}
@@ -552,24 +561,34 @@ def set_group_username():
         if not result.data:
             return jsonify({"error": "Could not save username"}), 500
 
-        return jsonify({"status": "success", "username": username})
+        return jsonify({
+            "status": "success",
+            "username": username
+        })
 
     except Exception as e:
         print("Set group username error:", repr(e))
         return jsonify({"error": "Could not save username"}), 500
-        # =========================================================
-# DELETE MESSAGE FOR EVERYONE (SOFT DELETE)
+
+
+# =========================================================
+# DELETE MESSAGE FOR EVERYONE
 # =========================================================
 
 @app.route("/delete_message", methods=["POST"])
 def delete_message():
+    if not session.get("user_id"):
+        return jsonify({"error": "Please login first"}), 401
+
     data = request.get_json(silent=True) or {}
 
     try:
         message_id = int(data.get("message_id"))
         group_id = int(data.get("group_id"))
     except (TypeError, ValueError):
-        return jsonify({"error": "Valid message and group IDs are required"}), 400
+        return jsonify({
+            "error": "Valid message and group IDs are required"
+        }), 400
 
     try:
         result = (
@@ -582,7 +601,9 @@ def delete_message():
         )
 
         if not result.data:
-            return jsonify({"error": "Message not found or already deleted"}), 404
+            return jsonify({
+                "error": "Message not found or already deleted"
+            }), 404
 
         return jsonify({
             "status": "success",
@@ -600,6 +621,9 @@ def delete_message():
 
 @app.route("/correct", methods=["POST"])
 def correct():
+    if not session.get("user_id"):
+        return jsonify({"error": "Please login first"}), 401
+
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()
 
