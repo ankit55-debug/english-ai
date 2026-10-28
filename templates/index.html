@@ -608,6 +608,8 @@
 <script>
     const GROUP_ID = {{ group_id|default(1)|tojson }};
     const GROUP_NAME = {{ group_name|default('General')|tojson }};
+    const SAVED_USERNAME = {{ group_username|default('')|tojson }};
+    
 
     const messagesElement = document.getElementById("messages");
     const messageInput = document.getElementById("message");
