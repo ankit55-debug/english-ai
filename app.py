@@ -467,80 +467,62 @@ def get_messages():
         return jsonify({"error": "Could not load messages"}), 500
 
 # =========================================================
-# SEND MESSAGE
+# SET A LOCKED USERNAME FOR EACH GROUP
 # =========================================================
-
-@app.route("/send", methods=["POST"])
-def send_message():
+@app.route("/set_group_username", methods=["POST"])
+def set_group_username():
     data = request.get_json(silent=True) or {}
+    user_id = session.get("user_id")
 
-    if not session.get("user_id"):
-    return jsonify({"error": "Please login first"}), 401
+    if not user_id:
+        return jsonify({"error": "Please login first"}), 401
 
-username = (session.get("username") or "").strip()
-
-if not username:
-    return jsonify({"error": "Username is not set"}), 400
-
-message = (data.get("message") or "").strip()
-    
+    username = (data.get("username") or "").strip()
 
     try:
         group_id = int(data.get("group_id"))
     except (TypeError, ValueError):
         return jsonify({"error": "Valid group ID is required"}), 400
 
-    if not message:
-        return jsonify({"error": "Message cannot be empty"}), 400
-
-    if len(message) > 5000:
-        return jsonify({"error": "Message is too long"}), 400
-
-    
-    
+    if not username or len(username) > 30:
+        return jsonify({"error": "Username must be 1–30 characters"}), 400
 
     try:
-        group = get_group(group_id)
-
-        if group is None:
+        if get_group(group_id) is None:
             return jsonify({"error": "Group not found"}), 404
 
+        existing = (
+            supabase.table("members")
+            .select("username")
+            .eq("group_id", group_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if existing.data:
+            return jsonify({
+                "error": "Username already locked for this group",
+                "username": existing.data[0]["username"]
+            }), 409
+
         result = (
-            supabase.table("messages")
+            supabase.table("members")
             .insert({
-                "username": username,
-                "message": message,
-                "correction": None,
-                "group_id": group_id
+                "group_id": group_id,
+                "user_id": user_id,
+                "username": username
             })
             .execute()
         )
 
         if not result.data:
-            return jsonify({"error": "Message could not be saved"}), 500
+            return jsonify({"error": "Could not save username"}), 500
 
-        saved_message = result.data[0]
-        message_id = saved_message["id"]
-
-        thread = threading.Thread(
-            target=correct_message_in_background,
-            args=(message_id, message),
-            daemon=True
-        )
-        thread.start()
-
-        return jsonify({
-            "status": "success",
-            "id": message_id,
-            "username": username,
-            "message": message,
-            "correction": None,
-            "group_id": group_id
-        })
+        return jsonify({"status": "success", "username": username})
 
     except Exception as e:
-        print("Send message error:", repr(e))
-        return jsonify({"error": "Could not send message"}), 500
+        print("Set group username error:", repr(e))
+        return jsonify({"error": "Could not save username"}), 500
         # =========================================================
 # DELETE MESSAGE FOR EVERYONE (SOFT DELETE)
 # =========================================================
