@@ -413,10 +413,24 @@ def join_group(invite_code):
 
         group = result.data[0]
 
+       membership = (
+            supabase.table("members")
+            .select("username")
+            .eq("group_id", group["id"])
+            .eq("user_id", session["user_id"])
+            .execute()
+        )
+
+        group_username = (
+            membership.data[0]["username"]
+            if membership.data else ""
+        )
+
         return render_template(
             "index.html",
             group_id=group["id"],
-            group_name=group["name"]
+            group_name=group["name"],
+            group_username=group_username
         )
 
     except Exception as e:
