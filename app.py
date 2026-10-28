@@ -448,7 +448,80 @@ def join_group(invite_code):
         print("Join group error:", repr(e))
         return "Could not open group. Please try again later.", 500
 
+# SEND MESSAGE
+@app.route("/send", methods=["POST"])
+def send_message():
+    if not session.get("user_id"):
+        return jsonify({"error": "Please login first"}), 401
 
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+
+    try:
+        group_id = int(data.get("group_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Valid group ID is required"}), 400
+
+    if not message:
+        return jsonify({"error": "Message cannot be empty"}), 400
+
+    if len(message) > 5000:
+        return jsonify({"error": "Message is too long"}), 400
+
+    user_id = session.get("user_id")
+
+    try:
+        group = get_group(group_id)
+        if group is None:
+            return jsonify({"error": "Group not found"}), 404
+
+        # Confirm that this logged-in user belongs to this group.
+        membership = (
+            supabase.table("members")
+            .select("username")
+            .eq("group_id", group_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not membership.data:
+            return jsonify({
+                "error": "Choose and save your username for this group first."
+            }), 403
+
+        username = membership.data[0]["username"]
+
+        # Save the message in Supabase first.
+        result = supabase.table("messages").insert({
+            "username": username,
+            "message": message,
+            "group_id": group_id,
+            "correction": None,
+            "is_deleted": False,
+            "hidden_by": []
+        }).execute()
+
+        if not result.data:
+            return jsonify({"error": "Message could not be saved"}), 500
+
+        saved_message = result.data[0]
+
+        # Run English correction in the background.
+        Thread(
+            target=correct_message_in_background,
+            args=(saved_message["id"], message),
+            daemon=True
+        ).start()
+
+        return jsonify({
+            "status": "success",
+            "message": "Message sent",
+            "id": saved_message["id"]
+        }), 201
+
+    except Exception as e:
+        print("Send message error:", repr(e))
+        return jsonify({"error": "Could not send message. Check server logs."}), 500
 # =========================================================
 # GET MESSAGES
 # =========================================================
