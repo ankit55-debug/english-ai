@@ -448,6 +448,8 @@ def join_group(invite_code):
 
 @app.route("/messages", methods=["GET"])
 def get_messages():
+    if not session.get("user_id"):
+    return jsonify({"error": "Please login first"}), 401
 
     group_id = request.args.get("group_id", type=int)
 
