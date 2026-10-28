@@ -624,23 +624,16 @@
         inviteInput.value = window.location.href;
     }
 
-    // Remember the name on this device.
-    try {
-        usernameInput.value = localStorage.getItem("englishAIUsername") || "";
-    } catch (error) {
-        console.log("Local storage is unavailable.");
-    }
-
-    usernameInput.addEventListener("change", function () {
-        try {
-            localStorage.setItem(
-                "englishAIUsername",
-                usernameInput.value.trim()
-            );
-        } catch (error) {
-            console.log("Could not save username.");
-        }
-    });
+   // Load the username saved for this specific group.
+if (SAVED_USERNAME) {
+    usernameInput.value = SAVED_USERNAME;
+    usernameInput.readOnly = true;
+    usernameInput.placeholder = "Username locked for this group";
+} else {
+    usernameInput.value = "";
+    usernameInput.readOnly = false;
+    usernameInput.placeholder = "Choose your name for this group";
+}
 
 
     // CREATE GROUP
