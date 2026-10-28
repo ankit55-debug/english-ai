@@ -356,6 +356,8 @@ def home():
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
+    if not session.get("user_id"):
+    return jsonify({"error": "Please login first"}), 401
     data = request.get_json(silent=True) or {}
     group_name = (data.get("name") or "").strip()
 
