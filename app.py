@@ -325,7 +325,7 @@ def home():
     try:
         group = ensure_general_group()
 
-       membership = (
+           membership = (
             supabase.table("members")
             .select("username")
             .eq("group_id", group["id"])
@@ -338,7 +338,7 @@ def home():
             if membership.data else ""
         )
 
-        return render_template(
+            return render_template(
             "index.html",
             group_id=group["id"],
             group_name=group["name"],
