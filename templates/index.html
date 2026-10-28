@@ -909,14 +909,14 @@ async function setGroupUsername() {
         if (!message) {
             messageInput.focus();
             return;
-        }
+       // Save and lock username for this group.
+if (!SAVED_USERNAME) {
+    const saved = await setGroupUsername();
 
-        // Save the name on this device.
-        try {
-            localStorage.setItem("englishAIUsername", username);
-        } catch (error) {
-            console.log("Could not save username.");
-        }
+    if (!saved) {
+        return;
+    }
+}
 
         sendButton.disabled = true;
         sendButton.textContent = "Sending...";
