@@ -291,6 +291,9 @@ def auth_session():
         session["user_id"] = user.id
         session["user_email"] = user.email
         session["username"] = (user.user_metadata or {}).get("username", "").strip()
+        if not session["username"]:
+            session.clear()
+            return jsonify({"error": "Username not found. Please contact support."}), 400
 
         return jsonify({"status": "success"})
 
