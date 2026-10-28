@@ -635,7 +635,58 @@ if (SAVED_USERNAME) {
     usernameInput.placeholder = "Choose your name for this group";
 }
 
+     // SET AND LOCK USERNAME FOR THIS GROUP
+async function setGroupUsername() {
+    const username = usernameInput.value.trim();
 
+    if (!username) {
+        alert("Please enter your name first.");
+        usernameInput.focus();
+        return false;
+    }
+
+    if (username.length > 30) {
+        alert("Name must be 30 characters or less.");
+        return false;
+    }
+
+    try {
+        const response = await fetch("/set_group_username", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                group_id: GROUP_ID,
+                username: username
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            if (data.username) {
+                usernameInput.value = data.username;
+                usernameInput.readOnly = true;
+            }
+
+            alert(data.error || "Could not save your name.");
+            return false;
+        }
+
+        usernameInput.value = data.username;
+        usernameInput.readOnly = true;
+        usernameInput.placeholder = "Username locked for this group";
+
+        alert("Your username is saved for this group!");
+        return true;
+
+    } catch (error) {
+        console.error("SET USERNAME ERROR:", error);
+        alert("Server connection failed.");
+        return false;
+    }
+}
     // CREATE GROUP
     async function createGroup() {
         const groupName = prompt("Enter group name:");
