@@ -909,6 +909,7 @@ async function setGroupUsername() {
         if (!message) {
             messageInput.focus();
             return;
+        }
        // Save and lock username for this group.
 if (!SAVED_USERNAME) {
     const saved = await setGroupUsername();
