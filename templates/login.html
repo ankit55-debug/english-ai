@@ -1,213 +1,294 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English AI - Login</title><style>
-    * {
-        box-sizing: border-box;
-    }
+    <title>English AI - Login</title>
 
-    body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
-        font-family: Arial, sans-serif;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-    }
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-    .container {
-        width: 100%;
-        max-width: 400px;
-        padding: 30px;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
-    }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
 
-    h1 {
-        text-align: center;
-        color: #5744b5;
-        margin-top: 0;
-    }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+        }
 
-    p {
-        text-align: center;
-        color: #666;
-    }
+        h1 {
+            text-align: center;
+            color: #5744b5;
+            margin-top: 0;
+        }
 
-    input {
-        width: 100%;
-        padding: 13px;
-        margin: 8px 0;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 16px;
-    }
+        p {
+            text-align: center;
+            color: #666;
+        }
 
-    button {
-        width: 100%;
-        padding: 13px;
-        margin-top: 12px;
-        border: none;
-        border-radius: 8px;
-        background: #6554c0;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-    }
+        input {
+            width: 100%;
+            padding: 13px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
 
-    button:hover {
-        background: #5141a5;
-    }
+        button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #6554c0;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
 
-    #status {
-        overflow-wrap: anywhere;
-        font-size: 14px;
-    }
-</style>
+        button:hover {
+            background: #5141a5;
+        }
 
-</head><body>
+        #status {
+            overflow-wrap: anywhere;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
     <div class="container">
         <h1>English AI</h1>
-        <p>Login or create your account</p>    <form id="authForm">
-        <input
-            type="email"
-            id="email"
-            placeholder="Email address"
-            autocomplete="email"
-            required
-        >
+        <p>Login or create your account</p>
 
-        <input
-            type="password"
-            id="password"
-            placeholder="Password (minimum 6 characters)"
-            autocomplete="current-password"
-            minlength="6"
-            required
-        >
+        <form id="authForm">
+            <input
+                type="text"
+                id="username"
+                placeholder="Choose username (signup only)"
+                autocomplete="username"
+                minlength="3"
+                maxlength="30"
+            >
 
-        <button type="button" id="loginButton">
-            Login
-        </button>
+            <input
+                type="email"
+                id="email"
+                placeholder="Email address"
+                autocomplete="email"
+                required
+            >
 
-        <button type="button" id="signupButton">
-            Sign Up
-        </button>
-        <button type="button" id="forgotPasswordButton">
-            Forgot Password?
-        </button>
-    </form>
+            <input
+                type="password"
+                id="password"
+                placeholder="Password (minimum 6 characters)"
+                autocomplete="current-password"
+                minlength="6"
+                required
+            >
 
-    <p id="status" role="status"></p>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+            <button type="button" id="loginButton">Login</button>
+            <button type="button" id="signupButton">Sign Up</button>
+            <button type="button" id="forgotPasswordButton">
+                Forgot Password?
+            </button>
+        </form>
 
-<script>
-    const SUPABASE_URL = "https://jbwhvvznpskrxbvviylh.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_qt3n6JAshR1zuycMhSOHlA_iDHKwl6h";
+        <p id="status" role="status"></p>
+    </div>
 
-    const supabaseClient = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-    );
-    document.getElementById("forgotPasswordButton").addEventListener("click", async function () {
-    const email = document.getElementById("email").value.trim();
-    const statusElement = document.getElementById("status");
+    <!-- Keep your existing Supabase URL and key here -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    if (!email) {
-        statusElement.textContent = "Please enter your email address first.";
-        document.getElementById("email").focus();
-        return;
-    }
-
-    statusElement.textContent = "Sending password reset email...";
-
-    try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin + "/reset-password"
-        });
-
-        if (error) throw error;
-
-        statusElement.textContent =
-            "If this email has an account, check your inbox for the password reset link.";
-    } catch (error) {
-       console.error("Password reset error:", error);
-       statusElement.textContent =
-    "Error: " + (error.message || "Unknown error");
-    }
-});
-</script>
     <script>
-    const statusElement = document.getElementById("status");
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
+        const SUPABASE_URL = "";
+        const SUPABASE_KEY = "";
 
-    document.getElementById("signupButton").addEventListener("click", async () => {
-        statusElement.textContent = "Creating account...";
+        const supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+        );
 
-        try {
-            const { data, error } = await supabaseClient.auth.signUp({
-                email: emailInput.value.trim(),
-                password: passwordInput.value
-            });
+        const statusElement = document.getElementById("status");
+        const emailInput = document.getElementById("email");
+        const passwordInput = document.getElementById("password");
+        const usernameInput = document.getElementById("username");
 
-            if (error) throw error;
+        // SIGN UP
+        document.getElementById("signupButton").addEventListener(
+            "click",
+            async function () {
+                const username = usernameInput.value.trim();
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
 
-            statusElement.textContent = data.session
-                ? "Account created! You can now log in."
-                : "Account created! Please check your email to confirm your account.";
-       } catch (error) {
-    console.error("SIGNUP ERROR:", error);
-    statusElement.textContent = "Signup failed: " + error.message;
-}
-    });
+                if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
+                    statusElement.textContent =
+                        "Username must be 3-30 characters using letters, numbers, or underscores.";
+                    return;
+                }
 
-    document.getElementById("loginButton").addEventListener("click", async () => {
-        statusElement.textContent = "Logging in...";
+                if (!email || password.length < 6) {
+                    statusElement.textContent =
+                        "Enter a valid email and a password of at least 6 characters.";
+                    return;
+                }
 
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: emailInput.value.trim(),
-                password: passwordInput.value
-            });
+                statusElement.textContent = "Creating account...";
 
-            if (error) throw error;
+                try {
+                    const { data, error } =
+                        await supabaseClient.auth.signUp({
+                            email: email,
+                            password: password,
+                            options: {
+                                data: {
+                                    username: username
+                                }
+                            }
+                        });
 
-           const response = await fetch("/auth/session", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-        access_token: data.session.access_token
-    })
-});
+                    if (error) {
+                        throw error;
+                    }
 
-const responseText = await response.text();
+                    statusElement.textContent = data.session
+                        ? "Account created! You can now log in."
+                        : "Account created! Please check your email to confirm your account.";
 
-let result;
-try {
-    result = JSON.parse(responseText);
-} catch {
-    throw new Error(
-        "Server response: " + responseText.slice(0, 200)
-    );
-}
+                } catch (error) {
+                    console.error("Signup error:", error);
+                    statusElement.textContent =
+                        "Signup failed: " + error.message;
+                }
+            }
+        );
 
-if (!response.ok) {
-    throw new Error(result.error || "Login verification failed.");
-}
+        // LOGIN
+        document.getElementById("loginButton").addEventListener(
+            "click",
+            async function () {
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
 
-window.location.href = "/";
-        } catch (error) {
-            statusElement.textContent = error.message;
-        }
-    });
-</script>
+                if (!email || !password) {
+                    statusElement.textContent =
+                        "Enter your email and password.";
+                    return;
+                }
+
+                statusElement.textContent = "Logging in...";
+
+                try {
+                    const { data, error } =
+                        await supabaseClient.auth.signInWithPassword({
+                            email: email,
+                            password: password
+                        });
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    if (!data.session) {
+                        throw new Error("Login session was not created.");
+                    }
+
+                    const response = await fetch("/auth/session", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            access_token: data.session.access_token
+                        })
+                    });
+
+                    const responseText = await response.text();
+
+                    let result;
+
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch {
+                        throw new Error(
+                            "Server response: " + responseText.slice(0, 200)
+                        );
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(
+                            result.error || "Login verification failed."
+                        );
+                    }
+
+                    window.location.href = "/";
+
+                } catch (error) {
+                    console.error("Login error:", error);
+                    statusElement.textContent = error.message;
+                }
+            }
+        );
+
+        // FORGOT PASSWORD
+        document.getElementById("forgotPasswordButton").addEventListener(
+            "click",
+            async function () {
+                const email = emailInput.value.trim();
+
+                if (!email) {
+                    statusElement.textContent =
+                        "Please enter your email address first.";
+                    emailInput.focus();
+                    return;
+                }
+
+                statusElement.textContent =
+                    "Sending password reset email...";
+
+                try {
+                    const { error } =
+                        await supabaseClient.auth.resetPasswordForEmail(
+                            email,
+                            {
+                                redirectTo:
+                                    window.location.origin + "/reset-password"
+                            }
+                        );
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    statusElement.textContent =
+                        "If this email has an account, check your inbox for the password reset link.";
+
+                } catch (error) {
+                    console.error("Password reset error:", error);
+                    statusElement.textContent =
+                        "Error: " + error.message;
+                }
+            }
+        );
+    </script>
 </body>
 </html>
