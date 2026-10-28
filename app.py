@@ -470,8 +470,16 @@ def get_messages():
 def send_message():
     data = request.get_json(silent=True) or {}
 
-    username = (data.get("username") or "User").strip()
-    message = (data.get("message") or "").strip()
+    if not session.get("user_id"):
+    return jsonify({"error": "Please login first"}), 401
+
+username = (session.get("username") or "").strip()
+
+if not username:
+    return jsonify({"error": "Username is not set"}), 400
+
+message = (data.get("message") or "").strip()
+    
 
     try:
         group_id = int(data.get("group_id"))
@@ -484,8 +492,8 @@ def send_message():
     if len(message) > 5000:
         return jsonify({"error": "Message is too long"}), 400
 
-    if not username:
-        username = "User"
+    
+    
 
     try:
         group = get_group(group_id)
