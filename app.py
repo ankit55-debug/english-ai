@@ -290,6 +290,7 @@ def auth_session():
 
         session["user_id"] = user.id
         session["user_email"] = user.email
+        session["username"] = (user.user_metadata or {}).get("username", "").strip()
 
         return jsonify({"status": "success"})
 
