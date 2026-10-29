@@ -240,7 +240,13 @@
                         );
                     }
 
-                    window.location.href = "/";
+                    const params = new URLSearchParams(window.location.search);
+const next = params.get("next");
+
+window.location.href =
+    next && next.startsWith("/") && !next.startsWith("//")
+        ? next
+        : "/";
 
                 } catch (error) {
                     console.error("Login error:", error);
