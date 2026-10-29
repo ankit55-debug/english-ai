@@ -409,7 +409,7 @@ def create_group():
 @app.route("/join/<invite_code>")
 def join_group(invite_code):
     if not session.get("user_id"):
-        return redirect(url_for("login_page"))
+        return redirect(url_for("login_page", next=request.path))
 
     try:
         result = (
