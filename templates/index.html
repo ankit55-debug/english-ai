@@ -621,8 +621,10 @@
 
     // Show the invite link when the current page was opened from one.
     if (window.location.pathname.startsWith("/join/")) {
-        inviteInput.value = window.location.href;
-    }
+    inviteInput.value = window.location.href;
+} else if (GROUP_NAME === "General") {
+    inviteInput.value = window.location.origin + "/join/general-room";
+}
 
    // Load the username saved for this specific group.
 if (SAVED_USERNAME) {
