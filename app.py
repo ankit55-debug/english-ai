@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+>from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from supabase import create_client
 from google import genai
@@ -347,7 +347,8 @@ def home():
             "index.html",
             group_id=group["id"],
             group_name=group["name"],
-            group_username=group_username
+            group_username=group_username,
+            current_user_id=session["user_id"]
         )
 
     except Exception as e:
@@ -441,7 +442,8 @@ def join_group(invite_code):
             "index.html",
             group_id=group["id"],
             group_name=group["name"],
-            group_username=group_username
+            group_username=group_username,
+            current_user_id=session["user_id"]
         )
 
     except Exception as e:
@@ -496,6 +498,7 @@ def send_message():
             "username": username,
             "message": message,
             "group_id": group_id,
+            "user_id":user_id,
             "correction": None,
             "is_deleted": False,
             "hidden_by": []
@@ -545,7 +548,7 @@ def get_messages():
         result = (
             supabase.table("messages")
             .select(
-                "id, username, message, correction, group_id, is_deleted, hidden_by"
+                "id, username, message, correction, group_id, user_id, is_deleted, hidden_by"
             )
             .eq("group_id", group_id)
             .order("id")
