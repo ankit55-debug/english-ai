@@ -828,14 +828,13 @@ async function setGroupUsername() {
                     const row = document.createElement("div");
                     row.className = "message-row";
 
-                    const currentName = usernameInput.value.trim();
-
                     if (
-                        currentName &&
-                        item.username.toLowerCase() === currentName.toLowerCase()
-                    ) {
-                        row.classList.add("mine")
-                        }
+    item.user_id &&
+    CURRENT_USER_ID &&
+    String(item.user_id) === String(CURRENT_USER_ID)
+) {
+    row.classList.add("mine");
+}
 
                     // Username
                     const sender = document.createElement("span");
