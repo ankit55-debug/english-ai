@@ -861,7 +861,8 @@ async function setGroupUsername() {
                     // Message bubble
                     const messageBubble = document.createElement("div");
                     messageBubble.className = "message";
-                    messageBubble.dataset.messageld=item.id;
+                    messageBubble.dataset.messageId = item.id;
+                    messageBubble.dataset.userId = item.user_id;
 
                     const messageText = document.createElement("span");
                     messageText.className = "message-text";
