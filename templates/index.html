@@ -602,6 +602,26 @@
 
 </div>
 
+ <!-- WhatsApp Style Delete Menu -->
+<div id="deleteMenu" style="
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    background: #222;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px #0005;
+">
+    <button type="button" id="deleteForMeBtn">
+        Delete for me
+    </button>
+
+    <button type="button" id="deleteForEveryoneBtn">
+        Delete for everyone
+    </button>
+</div>
+ 
 <script>
     const GROUP_ID = {{ group_id|default(1)|tojson }};
     const GROUP_NAME = {{ group_name|default('General')|tojson }};
@@ -1103,9 +1123,6 @@ document.addEventListener("click", function (event) {
     }
 });
 </script>
-<div id="deleteMenu" style="display:none; position:fixed; z-index:9999; background:#222; color:white; padding:10px; border-radius:10px; box-shadow:0 4px 12px #0005;">
-    <button type="button" id="deleteForMeBtn">Delete for me</button>
-    <button type="button" id="deleteForEveryoneBtn">Delete for everyone</button>
-</div>
+
 </body>
 </html>
