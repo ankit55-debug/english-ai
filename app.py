@@ -649,11 +649,12 @@ def set_group_username():
 
 
 # =========================================================
-# DELETE MESSAGE FOR EVERYONE
+# DELETE MESSAGE - CHAT ONLY
 # =========================================================
 
 @app.route("/delete_message", methods=["POST"])
 def delete_message():
+
     if not session.get("user_id"):
         return jsonify({"error": "Please login first"}), 401
 
@@ -663,34 +664,90 @@ def delete_message():
         message_id = int(data.get("message_id"))
         group_id = int(data.get("group_id"))
     except (TypeError, ValueError):
-        return jsonify({
-            "error": "Valid message and group IDs are required"
-        }), 400
+        return jsonify({"error": "Invalid message details"}), 400
+
+    delete_type = data.get("delete_type")
+    user_id = str(session["user_id"])
+
+    if delete_type not in ["me", "everyone"]:
+        return jsonify({"error": "Invalid delete option"}), 400
 
     try:
+        group = get_group(group_id)
+
+        if group is None:
+            return jsonify({"error": "Group not found"}), 404
+
+        membership = (
+            supabase.table("members")
+            .select("user_id")
+            .eq("group_id", group_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not membership.data:
+            return jsonify({"error": "Not a group member"}), 403
+
         result = (
             supabase.table("messages")
-            .update({"is_deleted": True})
+            .select("id, user_id, hidden_by, is_deleted")
             .eq("id", message_id)
             .eq("group_id", group_id)
-            .eq("is_deleted", False)
             .execute()
         )
 
         if not result.data:
-            return jsonify({
-                "error": "Message not found or already deleted"
-            }), 404
+            return jsonify({"error": "Message not found"}), 404
+
+        msg = result.data[0]
+
+        if msg.get("is_deleted") is True:
+            return jsonify({"error": "Already deleted"}), 404
+
+        if delete_type == "everyone":
+
+            if str(msg.get("user_id") or "") != user_id:
+                return jsonify({
+                    "error": "You can only delete your own message for everyone"
+                }), 403
+
+            supabase.table("messages").update({
+                "is_deleted": True
+            }).eq("id", message_id).eq(
+                "group_id", group_id
+            ).execute()
+
+        else:
+
+            hidden_by = msg.get("hidden_by") or []
+
+            if isinstance(hidden_by, str):
+                try:
+                    hidden_by = json.loads(hidden_by)
+                except (ValueError, TypeError):
+                    hidden_by = []
+
+            if not isinstance(hidden_by, list):
+                hidden_by = []
+
+            if user_id not in [str(uid) for uid in hidden_by]:
+                hidden_by.append(user_id)
+
+            supabase.table("messages").update({
+                "hidden_by": hidden_by
+            }).eq("id", message_id).eq(
+                "group_id", group_id
+            ).execute()
 
         return jsonify({
             "status": "success",
-            "message": "Message deleted for everyone"
+            "message": "Message hidden successfully"
         })
 
     except Exception as e:
         print("Delete message error:", repr(e))
         return jsonify({"error": "Could not delete message"}), 500
-
 
 # =========================================================
 # DIRECT CORRECTION ENDPOINT
