@@ -995,6 +995,113 @@ async function logoutUser() {
         alert("Connection failed. Please try again.");
     }
 }
+ // WhatsApp style long-press delete menu
+let selectedMessage = null;
+let longPressTimer = null;
+
+const deleteMenu = document.getElementById("deleteMenu");
+const deleteForMeBtn = document.getElementById("deleteForMeBtn");
+const deleteForEveryoneBtn = document.getElementById("deleteForEveryoneBtn");
+
+function showDeleteMenu(messageBubble, x, y) {
+    selectedMessage = messageBubble;
+
+    const isMyMessage =
+        String(messageBubble.dataset.userId) === String(CURRENT_USER_ID);
+
+    deleteForEveryoneBtn.style.display = isMyMessage ? "block" : "none";
+
+    deleteMenu.style.display = "block";
+
+    const menuWidth = deleteMenu.offsetWidth;
+    const menuHeight = deleteMenu.offsetHeight;
+
+    deleteMenu.style.left = Math.max(
+        5, Math.min(x, window.innerWidth - menuWidth - 5)
+    ) + "px";
+
+    deleteMenu.style.top = Math.max(
+        5, Math.min(y, window.innerHeight - menuHeight - 5)
+    ) + "px";
+}
+
+document.addEventListener("pointerdown", function (event) {
+    const messageBubble = event.target.closest(".message");
+
+    if (!messageBubble || !messageBubble.dataset.messageId) return;
+
+    longPressTimer = setTimeout(function () {
+        showDeleteMenu(messageBubble, event.clientX, event.clientY);
+    }, 550);
+});
+
+document.addEventListener("pointerup", function () {
+    clearTimeout(longPressTimer);
+});
+
+document.addEventListener("pointercancel", function () {
+    clearTimeout(longPressTimer);
+});
+
+document.addEventListener("pointermove", function () {
+    clearTimeout(longPressTimer);
+});
+
+document.addEventListener("contextmenu", function (event) {
+    const messageBubble = event.target.closest(".message");
+
+    if (messageBubble && messageBubble.dataset.messageId) {
+        event.preventDefault();
+        showDeleteMenu(messageBubble, event.clientX, event.clientY);
+    }
+});
+
+deleteForMeBtn.addEventListener("click", function () {
+    deleteSelectedMessage("me");
+});
+
+deleteForEveryoneBtn.addEventListener("click", function () {
+    deleteSelectedMessage("everyone");
+});
+
+async function deleteSelectedMessage(deleteType) {
+    if (!selectedMessage) return;
+
+    try {
+        const response = await fetch("/delete_message", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({
+                message_id: selectedMessage.dataset.messageId,
+                group_id: GROUP_ID,
+                delete_type: deleteType
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            alert(result.error || "Message delete failed");
+            return;
+        }
+
+        deleteMenu.style.display = "none";
+        selectedMessage = null;
+        await loadMessages();
+
+    } catch (error) {
+        alert("Connection failed. Please try again.");
+    }
+}
+
+document.addEventListener("click", function (event) {
+    if (!deleteMenu.contains(event.target)) {
+        deleteMenu.style.display = "none";
+    }
+});
 </script>
 <div id="deleteMenu" style="display:none; position:fixed; z-index:9999; background:#222; color:white; padding:10px; border-radius:10px; box-shadow:0 4px 12px #0005;">
     <button type="button" id="deleteForMeBtn">Delete for me</button>
