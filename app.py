@@ -560,8 +560,7 @@ def get_messages():
 
         for item in (result.data or []):
             hidden_by = item.get("hidden_by") or []
-            if item.get("is_deleted") is True:
-                continue
+            
             if isinstance(hidden_by, str):
                 try:
                     hidden_by = json.loads(hidden_by)
