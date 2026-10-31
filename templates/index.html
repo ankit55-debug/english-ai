@@ -1077,9 +1077,6 @@ document.addEventListener("pointermove", function (event) {
     }
 });
 
-document.addEventListener("pointermove", function () {
-    clearTimeout(longPressTimer);
-});
 
 document.addEventListener("contextmenu", function (event) {
     const messageBubble = event.target.closest(".message");
