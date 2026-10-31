@@ -1045,14 +1045,22 @@ function showDeleteMenu(messageBubble, x, y) {
     ) + "px";
 }
 
+let startX = 0;
+let startY = 0;
+
 document.addEventListener("pointerdown", function (event) {
     const messageBubble = event.target.closest(".message");
 
     if (!messageBubble || !messageBubble.dataset.messageId) return;
 
+    startX = event.clientX;
+    startY = event.clientY;
+
+    clearTimeout(longPressTimer);
+
     longPressTimer = setTimeout(function () {
-        showDeleteMenu(messageBubble, event.clientX, event.clientY);
-    }, 550);
+        showDeleteMenu(messageBubble, startX, startY);
+    }, 600);
 });
 
 document.addEventListener("pointerup", function () {
@@ -1061,6 +1069,12 @@ document.addEventListener("pointerup", function () {
 
 document.addEventListener("pointercancel", function () {
     clearTimeout(longPressTimer);
+});
+
+document.addEventListener("pointermove", function (event) {
+    if (Math.hypot(event.clientX - startX, event.clientY - startY) > 15) {
+        clearTimeout(longPressTimer);
+    }
 });
 
 document.addEventListener("pointermove", function () {
